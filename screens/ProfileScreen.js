@@ -1,14 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, FlatList, TextInput, TouchableOpacity } from 'react-native';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  Modal,
+} from 'react-native';
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {useNavigation} from '@react-navigation/native';
 
 const ProfileScreen = () => {
-  const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/100');
+  const [userAvatar, setUserAvatar] = useState(
+    'https://via.placeholder.com/100',
+  );
   const [feed, setFeed] = useState([]);
   const [isPublic, setIsPublic] = useState(false);
+  const [selectedPostIndex, setSelectedPostIndex] = useState(null); // Для хранения выбранного поста
+  const [isCommentModalVisible, setIsCommentModalVisible] = useState(false); // Управление модальным окном
+  const [commentText, setCommentText] = useState(''); // Текст нового комментария
 
   const navigation = useNavigation();
 
@@ -54,7 +68,7 @@ const ProfileScreen = () => {
           status: entry.translated ? 'Переведено' : 'Не переведено',
           isPublished: true,
           likes: 0,
-          comments: [],
+          comments: [], // Убедитесь, что всегда есть пустой массив
         }));
 
       const updatedFeed = [...feed, ...newFeedEntries];
@@ -94,20 +108,53 @@ const ProfileScreen = () => {
     setIsPublic(prev => !prev);
   };
 
+  const openCommentModal = index => {
+    setSelectedPostIndex(index);
+    setIsCommentModalVisible(true);
+  };
+
+  const closeCommentModal = () => {
+    setIsCommentModalVisible(false);
+    setCommentText('');
+  };
+
+  const submitComment = async () => {
+    if (!commentText.trim()) return;
+
+    const updatedFeed = [...feed];
+
+    // Убедитесь, что `comments` инициализирован как массив
+    updatedFeed[selectedPostIndex].comments =
+      updatedFeed[selectedPostIndex].comments || [];
+    updatedFeed[selectedPostIndex].comments.push(commentText);
+
+    setFeed(updatedFeed);
+    await AsyncStorage.setItem('feed', JSON.stringify(updatedFeed));
+    closeCommentModal();
+  };
+
   return (
     <View style={styles.container}>
       {/* Профиль пользователя */}
       <View style={styles.profileInfo}>
-        <Image source={{ uri: userAvatar }} style={styles.avatar} />
+        <Image source={{uri: userAvatar}} style={styles.avatar} />
         <Text style={styles.name}>{user.name}</Text>
         <Text style={styles.status}>Статус: {user.status}</Text>
-        <Text style={styles.unreadWords}>У вас {user.unreadWords} непереведённых слов</Text>
+        <Text style={styles.unreadWords}>
+          У вас {user.unreadWords} непереведённых слов
+        </Text>
         <Text style={styles.details}>Страна: {user.country}</Text>
         <Text style={styles.details}>Дата переезда: {user.moveDate}</Text>
-        <Text style={styles.details}>Города проживания: {user.cities.join(', ')}</Text>
-        <TouchableOpacity style={styles.toggleButton} onPress={toggleProfileVisibility}>
+        <Text style={styles.details}>
+          Города проживания: {user.cities.join(', ')}
+        </Text>
+        <TouchableOpacity
+          style={styles.toggleButton}
+          onPress={toggleProfileVisibility}>
           <Text style={styles.toggleButtonText}>
-            {isPublic ? 'Сделать профиль приватным' : 'Сделать профиль публичным'}
+            {isPublic
+              ? 'Сделать профиль приватным'
+              : 'Сделать профиль публичным'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -118,40 +165,90 @@ const ProfileScreen = () => {
         <FlatList
           data={feed}
           keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item, index }) => (
+          renderItem={({item, index}) => (
             <View style={styles.feedItem}>
               <Text style={styles.feedDate}>{item.date}</Text>
               <Text style={styles.feedContent}>{item.situation}</Text>
               <Text style={styles.feedStatus}>Статус: {item.status}</Text>
-              <View style={styles.actions}>
-                <TouchableOpacity onPress={() => toggleLike(index)} style={styles.likeButton}>
-                  <Icon name="heart" size={20} color="red" />
-                  <Text style={styles.likeCount}>{item.likes}</Text>
+              <View style={[styles.actions, {justifyContent: 'flex-start'}]}>
+                {/* Лайк */}
+                <TouchableOpacity
+                  onPress={() => toggleLike(index)}
+                  style={styles.actionButton}>
+                  <Icon name="heart-outline" size={20} color="black" />
+                  <Text style={styles.actionText}>{item.likes}</Text>
+                </TouchableOpacity>
+
+                {/* Комментарии */}
+                <TouchableOpacity
+                  onPress={() => openCommentModal(index)}
+                  style={styles.actionButton}>
+                  <Icon name="comment-outline" size={20} color="black" />
+                  <Text style={styles.actionText}>
+                    {item.comments?.length || 0}
+                  </Text>
                 </TouchableOpacity>
               </View>
-
-              <FlatList
-                data={item.comments}
-                keyExtractor={(c, commentIndex) => commentIndex.toString()}
-                renderItem={({ item: comment, index: commentIndex }) => (
-                  <View style={styles.comment}>
-                    <Text>{comment}</Text>
-                    <TouchableOpacity onPress={() => deleteComment(index, commentIndex)}>
-                      <Icon name="delete" size={20} color="gray" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              />
-
-              <TextInput
-                style={styles.input}
-                placeholder="Напишите комментарий..."
-                onSubmitEditing={event => addComment(index, event.nativeEvent.text)}
-              />
             </View>
           )}
         />
       </View>
+
+      {/* Кнопка добавления ситуации */}
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => navigation.navigate('Dictionary')}>
+        <Text style={styles.addButtonText}>Добавить ситуацию</Text>
+      </TouchableOpacity>
+      <Modal
+        visible={isCommentModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closeCommentModal}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Комментарии</Text>
+            <FlatList
+              data={feed[selectedPostIndex]?.comments || []} // Добавьте `|| []` для предотвращения ошибок
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({item, index}) => (
+                <View style={styles.commentItem}>
+                  <View style={styles.commentItem}>
+                    <Text style={styles.modalComment}>{item}</Text>
+                  </View>
+
+                  <Text style={styles.commentDate}>
+                    {new Date().toLocaleString()}{' '}
+                    {/* Здесь вы можете заменить на дату из данных */}
+                  </Text>
+                </View>
+              )}
+              ListEmptyComponent={
+                <Text style={styles.emptyCommentText}>Нет комментариев</Text>
+              } // Пустое состояние
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Напишите комментарий..."
+              value={commentText}
+              onChangeText={setCommentText}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                onPress={submitComment}
+                style={styles.submitButton}>
+                <Text style={styles.submitButtonText}>Отправить</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={closeCommentModal}
+                style={styles.cancelButton}>
+                <Text style={styles.cancelButtonText}>Закрыть</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -233,6 +330,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between', // Разделяем элементы по сторонам
     marginTop: 10,
   },
   likeButton: {
@@ -257,6 +355,100 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 5,
+  },
+  addButton: {
+    backgroundColor: '#28a745',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalComment: {
+    fontSize: 14,
+    marginVertical: 5,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  submitButton: {
+    backgroundColor: '#007bff',
+    padding: 10,
+    borderRadius: 5,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    backgroundColor: '#d9534f',
+    padding: 10,
+    borderRadius: 5,
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  emptyCommentText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+  firstComment: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 5,
+    fontStyle: 'italic',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 15, // Отступ между кнопками
+  },
+  actionText: {
+    marginLeft: 5, // Отступ между иконкой и текстом
+    fontSize: 14,
+    color: '#333',
+  },
+
+  feedDateRight: {
+    fontSize: 12,
+    color: '#888',
+    marginLeft: 'auto', // Чтобы дата выравнивалась справа
+  },
+  commentItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 5,
+  },
+  commentDate: {
+    fontSize: 12,
+    color: '#888',
   },
 });
 
