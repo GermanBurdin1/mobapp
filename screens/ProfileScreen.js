@@ -48,7 +48,36 @@ const ProfileScreen = () => {
     };
 
     fetchFeed();
+    const fetchAvatar = async () => {
+      try {
+        const storedAvatar = await AsyncStorage.getItem('userAvatar');
+        if (storedAvatar) {
+          setUserAvatar(storedAvatar);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке аватарки:', error);
+      }
+    };
+
+    fetchAvatar();
   }, []);
+
+  const selectAvatar = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.8,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const uri = result.assets[0].uri;
+        setUserAvatar(uri);
+        await AsyncStorage.setItem('userAvatar', uri);
+      }
+    } catch (error) {
+      console.error('Ошибка при выборе аватарки:', error);
+    }
+  };
 
   const migrateDictionaryToFeed = async () => {
     try {
@@ -137,7 +166,10 @@ const ProfileScreen = () => {
     <View style={styles.container}>
       {/* Профиль пользователя */}
       <View style={styles.profileInfo}>
-        <Image source={{uri: userAvatar}} style={styles.avatar} />
+        <TouchableOpacity onPress={selectAvatar}>
+          <Image source={{uri: userAvatar}} style={styles.avatar} />
+        </TouchableOpacity>
+
         <Text style={styles.name}>{user.name}</Text>
         <Text style={styles.status}>Статус: {user.status}</Text>
         <Text style={styles.unreadWords}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,13 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const FoldersScreen = ({ navigation }) => {
+const FoldersScreen = ({navigation}) => {
   const [folders, setFolders] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null);
   const [folderName, setFolderName] = useState('');
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+  const [wordOrPhrase, setWordOrPhrase] = useState('');
+  const [showNewCardInput, setShowNewCardInput] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,7 +34,62 @@ const FoldersScreen = ({ navigation }) => {
     fetchData();
   }, []);
 
-  const saveFolders = async (updatedFolders) => {
+  const addWordOrPhrase = () => {
+		if (!wordOrPhrase.trim()) {
+			console.warn('Слово или выражение не может быть пустым.');
+			return;
+		}
+	
+		console.log('Добавляем слово или выражение:', wordOrPhrase);
+		console.log('Текущая папка до обновления:', currentFolder);
+	
+		// Обновляем текущую папку
+		const updatedCurrentFolder = {
+			...currentFolder,
+			cards: [...currentFolder.cards, wordOrPhrase],
+		};
+	
+		// Рекурсивно обновляем папки
+		const updateFolderRecursively = (folders, targetFolder, updatedFolder) => {
+			return folders.map(folder => {
+				if (folder === targetFolder) {
+					return updatedFolder;
+				}
+	
+				// Рекурсивно обновляем подпапки
+				if (folder.subfolders && folder.subfolders.length > 0) {
+					return {
+						...folder,
+						subfolders: updateFolderRecursively(
+							folder.subfolders,
+							targetFolder,
+							updatedFolder,
+						),
+					};
+				}
+	
+				return folder; // Остальные папки без изменений
+			});
+		};
+	
+		const updatedFolders = updateFolderRecursively(
+			folders,
+			currentFolder,
+			updatedCurrentFolder,
+		);
+	
+		console.log('Обновленные папки:', updatedFolders);
+	
+		// Сохраняем данные
+		saveFolders(updatedFolders);
+		setCurrentFolder(updatedCurrentFolder); // Обновляем состояние текущей папки
+		setFolders(updatedFolders); // Обновляем состояние всех папок
+		setWordOrPhrase(''); // Очищаем поле ввода
+		setShowNewCardInput(false); // Скрываем поле ввода слова
+	};
+	
+
+  const saveFolders = async updatedFolders => {
     console.log('Сохраняемые папки:', updatedFolders);
     try {
       await AsyncStorage.setItem('folders', JSON.stringify(updatedFolders));
@@ -55,10 +112,10 @@ const FoldersScreen = ({ navigation }) => {
     };
     console.log('Созданная папка:', newFolder);
     const updatedFolders = currentFolder
-      ? folders.map((folder) =>
+      ? folders.map(folder =>
           folder === currentFolder
-            ? { ...folder, subfolders: [...folder.subfolders, newFolder] }
-            : folder
+            ? {...folder, subfolders: [...folder.subfolders, newFolder]}
+            : folder,
         )
       : [...folders, newFolder];
     saveFolders(updatedFolders);
@@ -66,33 +123,33 @@ const FoldersScreen = ({ navigation }) => {
     setShowNewFolderInput(false);
   };
 
-  const deleteFolder = (folderToDelete) => {
+  const deleteFolder = folderToDelete => {
     const confirmDelete = () => {
       const updatedFolders = currentFolder
-        ? folders.map((folder) =>
+        ? folders.map(folder =>
             folder === currentFolder
               ? {
                   ...folder,
                   subfolders: folder.subfolders.filter(
-                    (sub) => sub !== folderToDelete
+                    sub => sub !== folderToDelete,
                   ),
                 }
-              : folder
+              : folder,
           )
-        : folders.filter((folder) => folder !== folderToDelete);
+        : folders.filter(folder => folder !== folderToDelete);
       saveFolders(updatedFolders);
     };
     Alert.alert(
       'Удалить папку',
       `Вы уверены, что хотите удалить папку "${folderToDelete.name}"?`,
       [
-        { text: 'Отмена', style: 'cancel' },
-        { text: 'Удалить', style: 'destructive', onPress: confirmDelete },
-      ]
+        {text: 'Отмена', style: 'cancel'},
+        {text: 'Удалить', style: 'destructive', onPress: confirmDelete},
+      ],
     );
   };
 
-  const enterFolder = (folder) => {
+  const enterFolder = folder => {
     setCurrentFolder(folder);
   };
 
@@ -100,40 +157,41 @@ const FoldersScreen = ({ navigation }) => {
     setCurrentFolder(null);
   };
 
-  const renderFolder = ({ item }) => (
-		<ImageBackground
-			source={item.coverImage ? { uri: item.coverImage } : null}
-			style={styles.folderBackground}
-			imageStyle={styles.folderImageStyle}
-		>
-			<View style={styles.folderContent}>
-				<Icon name="folder" size={24} color="#f9a825" style={styles.folderIcon} />
-				<TouchableOpacity
-					style={styles.folder}
-					onPress={() => enterFolder(item)}
-					onLongPress={() => deleteFolder(item)}
-				>
-					<Text style={styles.folderText}>{item.name}</Text>
-				</TouchableOpacity>
-			</View>
-			<TouchableOpacity
-				style={styles.deleteButton}
-				onPress={() => deleteFolder(item)}
-			>
-				<Icon name="close-circle" size={24} color="#ff5252" />
-			</TouchableOpacity>
-		</ImageBackground>
+  const renderFolder = ({item}) => (
+    <ImageBackground
+      source={item.coverImage ? {uri: item.coverImage} : null}
+      style={styles.folderBackground}
+      imageStyle={styles.folderImageStyle}>
+      <View style={styles.folderContent}>
+        <Icon
+          name="folder"
+          size={24}
+          color="#f9a825"
+          style={styles.folderIcon}
+        />
+        <TouchableOpacity
+          style={styles.folder}
+          onPress={() => enterFolder(item)}
+          onLongPress={() => deleteFolder(item)}>
+          <Text style={styles.folderText}>{item.name}</Text>
+        </TouchableOpacity>
+      </View>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => deleteFolder(item)}>
+        <Icon name="close-circle" size={24} color="#ff5252" />
+      </TouchableOpacity>
+    </ImageBackground>
+  );
+
+  const renderCard = ({item}) => (
+		<TouchableOpacity
+			style={styles.card}
+			onPress={() => navigation.navigate('CardScreen', { card: item })}>
+			<Text style={styles.cardText}>{item}</Text>
+		</TouchableOpacity>
 	);
 	
-
-  const renderCard = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('CardScreen', { card: item })}
-    >
-      <Text style={styles.cardText}>{item}</Text>
-    </TouchableOpacity>
-  );
 
   return (
     <View style={styles.container}>
@@ -147,7 +205,7 @@ const FoldersScreen = ({ navigation }) => {
       />
       {currentFolder && (
         <>
-          <Text style={styles.subtitle}>Слова:</Text>
+          <Text style={styles.subtitle}>Слова и выражения:</Text>
           <FlatList
             data={currentFolder.cards}
             keyExtractor={(item, index) => index.toString()}
@@ -155,29 +213,73 @@ const FoldersScreen = ({ navigation }) => {
           />
         </>
       )}
-      {showNewFolderInput && (
-        <View style={styles.newFolderContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Введите имя новой папки..."
-            value={folderName}
-            onChangeText={setFolderName}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={addFolder}>
-            <Text style={styles.addButtonText}>Добавить</Text>
+      {currentFolder ? (
+        <>
+          {showNewFolderInput && (
+            <View style={styles.newFolderContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Введите имя новой подпапки..."
+                value={folderName}
+                onChangeText={setFolderName}
+              />
+              <TouchableOpacity style={styles.addButton} onPress={addFolder}>
+                <Text style={styles.addButtonText}>Добавить подпапку</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {showNewCardInput && (
+            <View style={styles.newFolderContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Введите слово или выражение..."
+                value={wordOrPhrase}
+                onChangeText={setWordOrPhrase}
+              />
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={addWordOrPhrase}>
+                <Text style={styles.addButtonText}>Добавить слово</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowNewFolderInput(true)}>
+            <Text style={styles.addButtonText}>Добавить подпапку</Text>
           </TouchableOpacity>
-        </View>
-      )}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setShowNewFolderInput(true)}
-      >
-        <Text style={styles.addButtonText}>Добавить папку</Text>
-      </TouchableOpacity>
-      {currentFolder && (
-        <TouchableOpacity style={styles.backButton} onPress={goBack}>
-          <Text style={styles.backButtonText}>Назад</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowNewCardInput(true)}>
+            <Text style={styles.addButtonText}>
+              Добавить слово или выражение
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.backButton} onPress={goBack}>
+            <Text style={styles.backButtonText}>Назад</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          {showNewFolderInput && (
+            <View style={styles.newFolderContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Введите имя новой папки..."
+                value={folderName}
+                onChangeText={setFolderName}
+              />
+              <TouchableOpacity style={styles.addButton} onPress={addFolder}>
+                <Text style={styles.addButtonText}>Добавить</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowNewFolderInput(true)}>
+            <Text style={styles.addButtonText}>Добавить папку</Text>
+          </TouchableOpacity>
+        </>
       )}
     </View>
   );
@@ -202,34 +304,34 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   folderContent: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		padding: 5, // Для отступа внутри фона
-	},
-	folderIcon: {
-		marginRight: 10, // Отступ между иконкой и текстом
-	},
-	folderBackground: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		padding: 20,
-		marginBottom: 15,
-		borderRadius: 10,
-		backgroundColor: '#f0f0f0',
-	},
-	folderImageStyle: {
-		borderRadius: 10,
-		opacity: 0.8, // Чтобы текст и иконка выделялись
-	},
-	folder: {
-		flex: 1,
-	},
-	folderText: {
-		fontSize: 18,
-		fontWeight: 'bold',
-		color: '#fff',
-	},	
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 5, // Для отступа внутри фона
+  },
+  folderIcon: {
+    marginRight: 10, // Отступ между иконкой и текстом
+  },
+  folderBackground: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    marginBottom: 15,
+    borderRadius: 10,
+    backgroundColor: '#f0f0f0',
+  },
+  folderImageStyle: {
+    borderRadius: 10,
+    opacity: 0.8, // Чтобы текст и иконка выделялись
+  },
+  folder: {
+    flex: 1,
+  },
+  folderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   deleteButton: {
     marginLeft: 0,
   },
