@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,13 @@ import {
   Image,
   FlatList,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { launchImageLibrary } from 'react-native-image-picker';
+import {launchImageLibrary} from 'react-native-image-picker';
 
-const DictionaryScreen = ({ navigation }) => {
+const DictionaryScreen = ({navigation}) => {
   const [step, setStep] = useState(1);
   const [situation, setSituation] = useState('');
   const [word, setWord] = useState('');
@@ -20,118 +21,150 @@ const DictionaryScreen = ({ navigation }) => {
   const [folder, setFolder] = useState('');
   const [subfolder, setSubfolder] = useState('');
   const [coverImage, setCoverImage] = useState(null);
+  const [folders, setFolders] = useState([]);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [situations, setSituations] = useState([]);
 
-  const handleNextStep = () => setStep((prev) => prev + 1);
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        const storedFolders = await AsyncStorage.getItem('folders');
+        const parsedFolders = storedFolders ? JSON.parse(storedFolders) : [];
+        setFolders(parsedFolders);
+      } catch (error) {
+        console.error('Ошибка загрузки папок:', error);
+      }
+    };
+
+    const fetchSituations = async () => {
+      try {
+        const storedSituations = await AsyncStorage.getItem('dictionary');
+        const parsedSituations = storedSituations
+          ? JSON.parse(storedSituations)
+          : [];
+        setSituations(parsedSituations);
+      } catch (error) {
+        console.error('Ошибка загрузки ситуаций:', error);
+      }
+    };
+
+    fetchFolders();
+    fetchSituations();
+  }, []);
+
+  const handleNextStep = () => setStep(prev => prev + 1);
 
   const selectImage = () => {
-    launchImageLibrary(
-      {
-        mediaType: 'photo',
-        quality: 1,
-      },
-      (response) => {
-        if (response.didCancel) {
-          console.log('Пользователь отменил выбор изображения');
-        } else if (response.errorCode) {
-          console.error('Ошибка выбора изображения:', response.errorMessage);
-        } else {
-          const uri = response.assets[0]?.uri;
-          if (uri) {
-            setCoverImage(uri);
-          }
-        }
+    launchImageLibrary({mediaType: 'photo', quality: 1}, response => {
+      if (!response.didCancel && !response.errorCode) {
+        const uri = response.assets[0]?.uri;
+        if (uri) setCoverImage(uri);
       }
-    );
+    });
   };
 
   const addWord = () => {
     if (word.trim()) {
-      setWords((prevWords) => [...prevWords, word.trim()]);
+      setWords(prevWords => [...prevWords, word.trim()]);
       setWord('');
     }
   };
 
   const handleSave = async () => {
-		const entry = {
-			situation,
-			words,
-			folder,
-			subfolder,
-			coverImage,
-			translated: false,
-			date: new Date().toISOString(), // Добавляем дату
-		};
-	
-		try {
-			// Сохраняем запись в словарь
-			const storedDictionary = await AsyncStorage.getItem('dictionary');
-			const dictionary = storedDictionary ? JSON.parse(storedDictionary) : [];
-			dictionary.push(entry);
-			await AsyncStorage.setItem('dictionary', JSON.stringify(dictionary));
-	
-			// Сохраняем запись в ленту
-			const storedFeed = await AsyncStorage.getItem('feed');
-			const feed = storedFeed ? JSON.parse(storedFeed) : [];
-			feed.push({
-				date: new Date().toLocaleDateString(),
-				situation,
-				status: entry.translated ? 'Переведено' : 'Не переведено',
-			});
-			await AsyncStorage.setItem('feed', JSON.stringify(feed));
-	
-			// Сохраняем в папки
-			const storedFolders = await AsyncStorage.getItem('folders');
-			const folders = storedFolders ? JSON.parse(storedFolders) : [];
-	
-			let folderIndex = folders.findIndex((f) => f.name === folder);
-			if (folderIndex === -1) {
-				folders.push({
-					name: folder,
-					subfolders: [],
-					cards: [],
-					coverImage,
-				});
-				folderIndex = folders.length - 1;
-			}
-	
-			const selectedFolder = folders[folderIndex];
-			if (subfolder) {
-				let subfolderIndex = selectedFolder.subfolders.findIndex(
-					(sf) => sf.name === subfolder
-				);
-				if (subfolderIndex === -1) {
-					selectedFolder.subfolders.push({
-						name: subfolder,
-						subfolders: [],
-						cards: [],
-						coverImage,
-					});
-					subfolderIndex = selectedFolder.subfolders.length - 1;
-				}
-				selectedFolder.subfolders[subfolderIndex].cards.push(...words);
-			} else {
-				selectedFolder.cards.push(...words);
-			}
-	
-			await AsyncStorage.setItem('folders', JSON.stringify(folders));
-		} catch (error) {
-			console.error('Ошибка сохранения:', error);
-		}
-	
-		setSituation('');
-		setWords([]);
-		setFolder('');
-		setSubfolder('');
-		setCoverImage(null);
-		setStep(1);
-	};	
+    const entry = {
+      situation,
+      words,
+      folder,
+      subfolder,
+      coverImage,
+      translated: false,
+      date: new Date().toISOString(),
+    };
+
+    try {
+      // Сохраняем запись в словарь
+      const storedDictionary = await AsyncStorage.getItem('dictionary');
+      const dictionary = storedDictionary ? JSON.parse(storedDictionary) : [];
+      dictionary.push(entry);
+      await AsyncStorage.setItem('dictionary', JSON.stringify(dictionary));
+      setSituations(dictionary);
+
+      // Сохраняем в папки
+      const storedFolders = await AsyncStorage.getItem('folders');
+      const foldersData = storedFolders ? JSON.parse(storedFolders) : [];
+      let folderIndex = foldersData.findIndex(f => f.name === folder);
+      if (folderIndex === -1) {
+        foldersData.push({
+          name: folder,
+          subfolders: [],
+          cards: [],
+          coverImage,
+        });
+        folderIndex = foldersData.length - 1;
+      }
+
+      const selectedFolder = foldersData[folderIndex];
+      if (subfolder) {
+        let subfolderIndex = selectedFolder.subfolders.findIndex(
+          sf => sf.name === subfolder,
+        );
+        if (subfolderIndex === -1) {
+          selectedFolder.subfolders.push({
+            name: subfolder,
+            subfolders: [],
+            cards: [],
+          });
+          subfolderIndex = selectedFolder.subfolders.length - 1;
+        }
+        selectedFolder.subfolders[subfolderIndex].cards.push(...words);
+      } else {
+        selectedFolder.cards.push(...words);
+      }
+
+      await AsyncStorage.setItem('folders', JSON.stringify(foldersData));
+      setFolders(foldersData);
+    } catch (error) {
+      console.error('Ошибка сохранения:', error);
+    }
+
+    setSituation('');
+    setWords([]);
+    setFolder('');
+    setSubfolder('');
+    setCoverImage(null);
+    setStep(1);
+  };
+
+  const handleSelectFolder = selectedFolder => {
+    setFolder(selectedFolder.name);
+    setShowFolderModal(false);
+  };
+
+  const renderFolderItem = ({item}) => (
+    <TouchableOpacity
+      style={styles.folderItem}
+      onPress={() => handleSelectFolder(item)}>
+      <Text style={styles.folderName}>{item.name}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderSituation = ({item}) => (
+    <View style={styles.situationItem}>
+      <Text style={styles.situationName}>{item.situation}</Text>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Добавьте новую запись</Text>
       {step === 1 && (
         <View style={styles.inputContainer}>
-          <Icon name="lightbulb-outline" size={24} color="#f9a825" style={styles.icon} />
+          <Icon
+            name="lightbulb-outline"
+            size={24}
+            color="#f9a825"
+            style={styles.icon}
+          />
           <Text style={styles.label}>Опишите ситуацию:</Text>
           <TextInput
             style={styles.input}
@@ -146,7 +179,12 @@ const DictionaryScreen = ({ navigation }) => {
       )}
       {step === 2 && (
         <View style={styles.inputContainer}>
-          <Icon name="text-box-outline" size={24} color="#007bff" style={styles.icon} />
+          <Icon
+            name="text-box-outline"
+            size={24}
+            color="#007bff"
+            style={styles.icon}
+          />
           <Text style={styles.label}>Добавьте слово или выражение:</Text>
           <TextInput
             style={styles.input}
@@ -160,7 +198,7 @@ const DictionaryScreen = ({ navigation }) => {
           <FlatList
             data={words}
             keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => <Text style={styles.wordItem}>{item}</Text>}
+            renderItem={({item}) => <Text style={styles.wordItem}>{item}</Text>}
           />
           <TouchableOpacity style={styles.button} onPress={handleNextStep}>
             <Text style={styles.buttonText}>Далее</Text>
@@ -169,15 +207,20 @@ const DictionaryScreen = ({ navigation }) => {
       )}
       {step === 3 && (
         <View>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Укажите папку:</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Введите имя папки..."
-              value={folder}
-              onChangeText={setFolder}
-            />
-          </View>
+          <TouchableOpacity
+            style={styles.selectFolderButton}
+            onPress={() => setShowFolderModal(true)}>
+            <Text style={styles.selectFolderButtonText}>
+              {folder ? `Выбрана папка: ${folder}` : 'Выбрать папку'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.label}>Или создайте новую папку:</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Введите имя новой папки..."
+            value={folder}
+            onChangeText={setFolder}
+          />
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Укажите подпапку (необязательно):</Text>
             <TextInput
@@ -191,7 +234,7 @@ const DictionaryScreen = ({ navigation }) => {
             <Text style={styles.imageButtonText}>Выбрать обложку</Text>
           </TouchableOpacity>
           {coverImage && (
-            <Image source={{ uri: coverImage }} style={styles.previewImage} />
+            <Image source={{uri: coverImage}} style={styles.previewImage} />
           )}
           <TouchableOpacity style={styles.button} onPress={handleSave}>
             <Text style={styles.buttonText}>Сохранить</Text>
@@ -200,10 +243,27 @@ const DictionaryScreen = ({ navigation }) => {
       )}
       <TouchableOpacity
         style={styles.viewFoldersButton}
-        onPress={() => navigation.navigate('FoldersScreen')}
-      >
-        <Text style={styles.viewFoldersButtonText}>Посмотреть папки и записи</Text>
+        onPress={() => navigation.navigate('FoldersScreen')}>
+        <Text style={styles.viewFoldersButtonText}>
+          Посмотреть папки и записи
+        </Text>
       </TouchableOpacity>
+
+      <Modal visible={showFolderModal} animationType="slide">
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Выберите папку</Text>
+          <FlatList
+            data={folders}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={renderFolderItem}
+          />
+          <TouchableOpacity
+            style={styles.closeModalButton}
+            onPress={() => setShowFolderModal(false)}>
+            <Text style={styles.closeModalButtonText}>Закрыть</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -293,6 +353,26 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginBottom: 5,
+  },
+	modalContainer: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
+  closeModalButton: {
+    backgroundColor: '#d9534f',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  closeModalButtonText: { color: '#fff', fontWeight: 'bold' },
+	selectFolderButtonText: { color: '#fff', fontWeight: 'bold' },
+  folderItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#ddd' },
+  folderName: { fontSize: 16 },
+	selectFolderButton: {
+    backgroundColor: '#6a1b9a',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
   },
 });
 
