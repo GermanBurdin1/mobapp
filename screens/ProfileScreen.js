@@ -264,82 +264,76 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Верхняя часть профиля */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={selectAvatar}>
-          <Image source={{uri: userAvatar}} style={styles.avatar} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={toggleSettingsModal}>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <TouchableOpacity onPress={toggleSettingsModal}>
           <Icon name="cog" size={24} color="#333" />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.profileInfo}>
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.status}>Статус: {user.status}</Text>
-        {getCurrentCity() && (
-          <View style={styles.currentLocation}>
-            <Icon name="map-marker" size={20} color="#007AFF" />
-            <Text style={styles.currentLocationText}>
-              Сейчас живет в {getCurrentCity().city}
-            </Text>
-          </View>
-        )}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{user.unreadWords}</Text>
-            <Text style={styles.statLabel}>Слов</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{user.cities.length}</Text>
-            <Text style={styles.statLabel}>Городов</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{feed.length}</Text>
-            <Text style={styles.statLabel}>Ситуаций</Text>
-          </View>
-        </View>
-
-        <View style={styles.locationHistory}>
-          <Text style={styles.locationTitle}>История переездов:</Text>
-          {moveHistory.initialMove.city && (
-            <View style={styles.locationItem}>
-              <Text style={styles.locationText}>
-                Первый переезд: {moveHistory.initialMove.city} (
-                {moveHistory.initialMove.date})
-              </Text>
-              <Text style={styles.durationText}>
-                Длительность:{' '}
-                {calculateDuration(
-                  moveHistory.initialMove.date,
-                  moveHistory.cities[0]?.arrivedAt || null,
-                )}
+      {/* Информация о пользователе */}
+      <View style={styles.userInfoContainer}>
+        <Image source={{uri: userAvatar}} style={styles.avatar} />
+        <View style={styles.userDetailsContainer}>
+          <Text style={styles.name}>{user.name}</Text>
+          <Text style={styles.status}>Статус: {user.status}</Text>
+          {getCurrentCity() && (
+            <View style={styles.currentLocation}>
+              <Icon name="map-marker" size={20} color="#007AFF" />
+              <Text style={styles.currentLocationText}>
+                Сейчас живет в {getCurrentCity().city}
               </Text>
             </View>
           )}
-          {moveHistory.cities.map((city, index) => (
-            <View key={index} style={styles.locationItem}>
-              <Text style={styles.locationText}>
-                {city.city} ({city.arrivedAt} - {city.leftAt || 'сейчас'})
-                {!city.leftAt && (
-                  <Text style={styles.currentCity}> (текущий город)</Text>
-                )}
-              </Text>
-              <Text style={styles.durationText}>
-                Длительность: {calculateDuration(city.arrivedAt, city.leftAt)}
-              </Text>
-            </View>
-          ))}
+          <View style={styles.locationHistory}>
+            <Text style={styles.locationTitle}>История переездов:</Text>
+            {moveHistory.initialMove.city && (
+              <View style={styles.locationItem}>
+                <Text style={styles.locationText}>
+                  Первый переезд: {moveHistory.initialMove.city} ({moveHistory.initialMove.date})
+                </Text>
+                <Text style={styles.durationText}>
+                  Длительность: {calculateDuration(moveHistory.initialMove.date, moveHistory.cities[0]?.arrivedAt || null)}
+                </Text>
+              </View>
+            )}
+            {moveHistory.cities.map((city, index) => (
+              <View key={index} style={styles.locationItem}>
+                <Text style={styles.locationText}>
+                  {city.city} ({city.arrivedAt} - {city.leftAt || 'сейчас'})
+                  {!city.leftAt && <Text style={styles.currentCity}> (текущий город)</Text>}
+                </Text>
+                <Text style={styles.durationText}>
+                  Длительность: {calculateDuration(city.arrivedAt, city.leftAt)}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
-
-        <TouchableOpacity
-          style={styles.dictionaryButton}
-          onPress={() => navigation.navigate('Dictionary')}>
-          <Icon name="book-open-variant" size={20} color="#fff" />
-          <Text style={styles.dictionaryButtonText}>Перейти к словарю</Text>
-        </TouchableOpacity>
       </View>
+
+      <View style={styles.statsContainer}>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{user.unreadWords}</Text>
+          <Text style={styles.statLabel}>Слов</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{user.cities.length}</Text>
+          <Text style={styles.statLabel}>Городов</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{feed.length}</Text>
+          <Text style={styles.statLabel}>Ситуаций</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.dictionaryButton}
+        onPress={() => navigation.navigate('Dictionary')}>
+        <Icon name="book-open-variant" size={20} color="#fff" />
+        <Text style={styles.dictionaryButtonText}>Перейти к словарю</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.addSituationButton}
@@ -596,39 +590,72 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 15,
-    backgroundColor: '#fff',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  userInfoContainer: {
+    flexDirection: 'row',
+    padding: 15,
+    alignItems: 'flex-start',
   },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    borderWidth: 3,
-    borderColor: '#007AFF',
+    marginRight: 15,
   },
-  settingsButton: {
-    padding: 10,
-  },
-  profileInfo: {
-    padding: 15,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  userDetailsContainer: {
+    flex: 1,
   },
   name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   status: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
-    marginBottom: 15,
+    marginBottom: 8,
+  },
+  currentLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  currentLocationText: {
+    marginLeft: 5,
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  locationHistory: {
+    marginTop: 5,
+  },
+  locationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  locationItem: {
+    marginBottom: 8,
+  },
+  locationText: {
+    fontSize: 13,
+    color: '#333',
+    marginBottom: 2,
+  },
+  durationText: {
+    fontSize: 11,
+    color: '#666',
+    fontStyle: 'italic',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -810,43 +837,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   // Добавляем новые стили для управления городами
-  locationHistory: {
-    width: '100%',
-    paddingHorizontal: 15,
-    marginVertical: 15,
-  },
-  locationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 10,
-  },
-  locationItem: {
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 5,
-  },
-  currentCity: {
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  inputGroup: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 15,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 15,
-    marginBottom: 8,
-  },
   cityItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -878,40 +868,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  currentLocation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  currentLocationText: {
-    marginLeft: 5,
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  locationHistory: {
-    width: '100%',
-    paddingHorizontal: 15,
-    marginVertical: 15,
-  },
-  locationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 10,
-  },
-  locationItem: {
-    marginBottom: 12,
-  },
-  locationText: {
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 2,
-  },
-  durationText: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
   },
   currentCity: {
     color: '#007AFF',
