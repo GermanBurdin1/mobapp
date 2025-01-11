@@ -15,15 +15,24 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useNavigation} from '@react-navigation/native';
 
 const ProfileScreen = () => {
-  const [userAvatar, setUserAvatar] = useState(
-    'https://via.placeholder.com/100',
-  );
+  const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/100');
   const [feed, setFeed] = useState([]);
   const [isPublic, setIsPublic] = useState(false);
   const [selectedPostIndex, setSelectedPostIndex] = useState(null);
   const [isCommentModalVisible, setIsCommentModalVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
+  // Новые состояния для управления городами
+  const [isLocationModalVisible, setIsLocationModalVisible] = useState(false);
+  const [moveHistory, setMoveHistory] = useState({
+    initialMove: { city: '', date: '' },
+    cities: []
+  });
+  const [newCity, setNewCity] = useState({
+    city: '',
+    arrivedAt: '',
+    leftAt: ''
+  });
 
   const navigation = useNavigation();
 
@@ -61,6 +70,20 @@ const ProfileScreen = () => {
     };
 
     fetchAvatar();
+
+    // Добавляем загрузку истории городов
+    const loadMoveHistory = async () => {
+      try {
+        const storedHistory = await AsyncStorage.getItem('moveHistory');
+        if (storedHistory) {
+          setMoveHistory(JSON.parse(storedHistory));
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке истории городов:', error);
+      }
+    };
+
+    loadMoveHistory();
   }, []);
 
   const selectAvatar = async () => {
@@ -139,6 +162,72 @@ const ProfileScreen = () => {
 
   const toggleSettingsModal = () => {
     setIsSettingsModalVisible(!isSettingsModalVisible);
+  };
+
+  // Новые функции для управления городами
+  const updateInitialMove = async (date, city) => {
+    const updatedHistory = {
+      ...moveHistory,
+      initialMove: { date, city }
+    };
+    setMoveHistory(updatedHistory);
+    try {
+      await AsyncStorage.setItem('moveHistory', JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error('Ошибка при обновлении первого переезда:', error);
+    }
+  };
+
+  const addCity = async () => {
+    if (!newCity.city || !newCity.arrivedAt) return;
+
+    const updatedCities = [...moveHistory.cities];
+    
+    // Если есть текущий город, добавляем дату отъезда
+    const currentCityIndex = updatedCities.findIndex(city => !city.leftAt);
+    if (currentCityIndex !== -1) {
+      updatedCities[currentCityIndex].leftAt = newCity.arrivedAt;
+    }
+
+    updatedCities.push({
+      city: newCity.city,
+      arrivedAt: newCity.arrivedAt,
+      leftAt: newCity.leftAt
+    });
+
+    const updatedHistory = {
+      ...moveHistory,
+      cities: updatedCities
+    };
+
+    setMoveHistory(updatedHistory);
+    setNewCity({
+      city: '',
+      arrivedAt: '',
+      leftAt: ''
+    });
+
+    try {
+      await AsyncStorage.setItem('moveHistory', JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error('Ошибка при сохранении истории городов:', error);
+    }
+  };
+
+  const removeCity = async (index) => {
+    const updatedCities = moveHistory.cities.filter((_, i) => i !== index);
+    const updatedHistory = {
+      ...moveHistory,
+      cities: updatedCities
+    };
+    
+    setMoveHistory(updatedHistory);
+
+    try {
+      await AsyncStorage.setItem('moveHistory', JSON.stringify(updatedHistory));
+    } catch (error) {
+      console.error('Ошибка при удалении города:', error);
+    }
   };
 
   return (
@@ -249,13 +338,116 @@ const ProfileScreen = () => {
                 <Icon name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
-            
+
             <TouchableOpacity
               style={styles.settingsOption}
               onPress={selectAvatar}>
               <Icon name="camera" size={24} color="#333" />
               <Text style={styles.settingsOptionText}>Изменить фото профиля</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingsOption}
+              onPress={() => {
+                setIsLocationModalVisible(true);
+                toggleSettingsModal();
+              }}>
+              <Icon name="map-marker" size={24} color="#333" />
+              <Text style={styles.settingsOptionText}>История городов</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingsOption}
+              onPress={() => setIsPublic(!isPublic)}>
+              <Icon name={isPublic ? 'eye' : 'eye-off'} size={24} color="#333" />
+              <Text style={styles.settingsOptionText}>
+                {isPublic ? 'Сделать профиль приватным' : 'Сделать профиль публичным'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Модальное окно для редактирования локаций */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isLocationModalVisible}
+        onRequestClose={() => setIsLocationModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>История переездов</Text>
+              <TouchableOpacity onPress={() => setIsLocationModalVisible(false)}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.label}>Первый переезд:</Text>
+            <View style={styles.inputGroup}>
+              <TextInput
+                style={[styles.input, { flex: 2 }]}
+                placeholder="Город"
+                value={moveHistory.initialMove.city}
+                onChangeText={(text) => updateInitialMove(moveHistory.initialMove.date, text)}
+              />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="YYYY-MM"
+                value={moveHistory.initialMove.date}
+                onChangeText={(text) => updateInitialMove(text, moveHistory.initialMove.city)}
+              />
+            </View>
+
+            <Text style={styles.label}>Добавить город:</Text>
+            <View style={styles.inputGroup}>
+              <TextInput
+                style={[styles.input, { flex: 2 }]}
+                placeholder="Город"
+                value={newCity.city}
+                onChangeText={(text) => setNewCity({...newCity, city: text})}
+              />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="YYYY-MM"
+                value={newCity.arrivedAt}
+                onChangeText={(text) => setNewCity({...newCity, arrivedAt: text})}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Дата отъезда (необязательно)"
+                value={newCity.leftAt}
+                onChangeText={(text) => setNewCity({...newCity, leftAt: text})}
+              />
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={addCity}>
+                <Icon name="plus" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.label}>История городов:</Text>
+            <FlatList
+              data={moveHistory.cities}
+              keyExtractor={(_, index) => index.toString()}
+              renderItem={({item, index}) => (
+                <View style={styles.cityItem}>
+                  <View style={styles.cityInfo}>
+                    <Text style={styles.cityName}>{item.city}</Text>
+                    <Text style={styles.cityDates}>
+                      {item.arrivedAt} - {item.leftAt || 'сейчас'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => removeCity(index)}
+                    style={styles.removeButton}>
+                    <Icon name="close" size={20} color="#FF3B30" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            />
           </View>
         </View>
       </Modal>
@@ -527,6 +719,76 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  // Добавляем новые стили для управления городами
+  locationHistory: {
+    width: '100%',
+    paddingHorizontal: 15,
+    marginVertical: 15,
+  },
+  locationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  locationItem: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 5,
+  },
+  currentCity: {
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  inputGroup: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 15,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 15,
+    marginBottom: 8,
+  },
+  cityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  cityInfo: {
+    flex: 1,
+  },
+  cityName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  cityDates: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  removeButton: {
+    padding: 5,
+  },
+  addButton: {
+    backgroundColor: '#007AFF',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
