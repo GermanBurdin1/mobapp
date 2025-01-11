@@ -16,7 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 const FoldersScreen = ({navigation}) => {
   const [folders, setFolders] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null);
-  const [folderName, setFolderName] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [wordOrPhrase, setWordOrPhrase] = useState('');
   const [showNewCardInput, setShowNewCardInput] = useState(false);
@@ -103,12 +103,12 @@ const FoldersScreen = ({navigation}) => {
   };
 
   const addFolder = () => {
-    if (!folderName.trim()) {
+    if (!newFolderName.trim()) {
       console.warn('Имя папки не может быть пустым.');
       return;
     }
     const newFolder = {
-      name: folderName,
+      name: newFolderName,
       subfolders: [],
       cards: [],
       coverImage: null, // Обложка по умолчанию
@@ -122,7 +122,7 @@ const FoldersScreen = ({navigation}) => {
         )
       : [...folders, newFolder];
     saveFolders(updatedFolders);
-    setFolderName('');
+    setNewFolderName('');
     setShowNewFolderInput(false);
   };
 
@@ -201,92 +201,75 @@ const FoldersScreen = ({navigation}) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {currentFolder ? `Ситуация: ${currentFolder.name}` : 'Ваши ситуации'}
-      </Text>
-      <FlatList
-        data={currentFolder ? currentFolder.subfolders : folders}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={renderFolder}
-      />
-      {currentFolder && (
+      <View style={styles.header}>
+        {currentFolder ? (
+          <>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={goBack}>
+              <Icon name="arrow-left" size={24} color="#333" />
+              <Text style={styles.backButtonText}>Назад</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{currentFolder.name}</Text>
+          </>
+        ) : (
+          <Text style={styles.headerTitle}>Ваши ситуации</Text>
+        )}
+      </View>
+
+      {!currentFolder ? (
         <>
-          <Text style={styles.subtitle}>Слова и выражения:</Text>
           <FlatList
-            data={currentFolder.cards}
+            data={folders}
+            renderItem={renderFolder}
             keyExtractor={(item, index) => index.toString()}
-            renderItem={renderCard}
+            style={styles.folderList}
           />
-        </>
-      )}
-      {currentFolder ? (
-        <>
-          {showNewFolderInput && (
-            <View style={styles.newFolderContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Введите имя новой подпапки..."
-                value={folderName}
-                onChangeText={setFolderName}
-              />
-              <TouchableOpacity style={styles.addButton} onPress={addFolder}>
-                <Text style={styles.addButtonText}>Добавить подпапку</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {showNewCardInput && (
-            <View style={styles.newFolderContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Введите слово или выражение..."
-                value={wordOrPhrase}
-                onChangeText={setWordOrPhrase}
-              />
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={addWordOrPhrase}>
-                <Text style={styles.addButtonText}>Добавить слово</Text>
-              </TouchableOpacity>
-            </View>
-          )}
           <TouchableOpacity
-            style={styles.addButton}
+            style={styles.addFolderButton}
             onPress={() => setShowNewFolderInput(true)}>
-            <Text style={styles.addButtonText}>Добавить подпапку</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowNewCardInput(true)}>
-            <Text style={styles.addButtonText}>
-              Добавить слово или выражение
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.backButton} onPress={goBack}>
-            <Text style={styles.backButtonText}>Назад</Text>
+            <Icon name="folder-plus" size={24} color="#007AFF" />
+            <Text style={styles.addFolderText}>Добавить подпапку</Text>
           </TouchableOpacity>
         </>
       ) : (
         <>
-          {showNewFolderInput && (
-            <View style={styles.newFolderContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Введите имя новой папки..."
-                value={folderName}
-                onChangeText={setFolderName}
-              />
-              <TouchableOpacity style={styles.addButton} onPress={addFolder}>
-                <Text style={styles.addButtonText}>Добавить</Text>
-              </TouchableOpacity>
-            </View>
+          {currentFolder.subfolders && currentFolder.subfolders.length > 0 && (
+            <FlatList
+              data={currentFolder.subfolders}
+              renderItem={renderFolder}
+              keyExtractor={(item, index) => index.toString()}
+              style={styles.folderList}
+              ListHeaderComponent={
+                <Text style={styles.sectionTitle}>Подпапки</Text>
+              }
+            />
           )}
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowNewFolderInput(true)}>
-            <Text style={styles.addButtonText}>Добавить папку</Text>
-          </TouchableOpacity>
+          <FlatList
+            data={currentFolder.cards}
+            renderItem={renderCard}
+            keyExtractor={(item, index) => index.toString()}
+            style={styles.cardList}
+          />
         </>
       )}
+
+      {showNewFolderInput && (
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Название папки"
+            value={newFolderName}
+            onChangeText={setNewFolderName}
+          />
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={addFolder}>
+            <Text style={styles.submitButtonText}>Добавить</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <Modal
         animationType="slide"
         transparent={true}
@@ -304,20 +287,14 @@ const FoldersScreen = ({navigation}) => {
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => setIsAddSubfolderModalVisible(true)}>
-                <Icon name="folder-plus" size={24} color="#007AFF" />
-                <Text style={styles.actionButtonText}>Добавить подпапку</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => setIsAddWordModalVisible(true)}>
+                onPress={() => {
+                  setIsAddWordModalVisible(true);
+                  closeModal();
+                }}>
                 <Icon name="text-box-plus" size={24} color="#007AFF" />
                 <Text style={styles.actionButtonText}>Добавить слово или выражение</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Остальное содержимое модального окна */}
           </View>
         </View>
       </Modal>
@@ -325,144 +302,175 @@ const FoldersScreen = ({navigation}) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  folderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 5, // Для отступа внутри фона
-  },
-  folderIcon: {
-    marginRight: 10, // Отступ между иконкой и текстом
-  },
-  folderBackground: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    marginBottom: 15,
-    borderRadius: 10,
-    backgroundColor: '#f0f0f0',
-  },
-  folderImageStyle: {
-    borderRadius: 10,
-    opacity: 0.8, // Чтобы текст и иконка выделялись
-  },
-  folder: {
-    flex: 1,
-  },
-  folderText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  deleteButton: {
-    marginLeft: 0,
-  },
-  card: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderColor: '#eee',
-  },
-  cardText: {
-    fontSize: 16,
-  },
-  newFolderContainer: {
-    marginBottom: 15,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-    marginBottom: 10,
-  },
-  addButton: {
-    backgroundColor: '#f9a825',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  backButton: {
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  backButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-    width: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  buttonContainer: {
-    flexDirection: 'column',
-    paddingHorizontal: 15,
-    marginVertical: 10,
-    gap: 10,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    width: '100%',
-  },
-  actionButtonText: {
-    marginLeft: 8,
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-});
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 20,
+      backgroundColor: '#fff',
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+    backButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#fff',
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: '#007AFF',
+      marginRight: 15,
+    },
+    backButtonText: {
+      marginLeft: 8,
+      color: '#007AFF',
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    folderContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 5, // Для отступа внутри фона
+    },
+    folderIcon: {
+      marginRight: 10, // Отступ между иконкой и текстом
+    },
+    folderBackground: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 20,
+      marginBottom: 15,
+      borderRadius: 10,
+      backgroundColor: '#f0f0f0',
+    },
+    folderImageStyle: {
+      borderRadius: 10,
+      opacity: 0.8, // Чтобы текст и иконка выделялись
+    },
+    folder: {
+      flex: 1,
+    },
+    folderText: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    deleteButton: {
+      marginLeft: 0,
+    },
+    card: {
+      padding: 15,
+      borderBottomWidth: 1,
+      borderColor: '#eee',
+    },
+    cardText: {
+      fontSize: 16,
+    },
+    addFolderButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#fff',
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: '#007AFF',
+      margin: 15,
+    },
+    addFolderText: {
+      marginLeft: 8,
+      color: '#007AFF',
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#333',
+      marginVertical: 10,
+      marginHorizontal: 15,
+    },
+    inputContainer: {
+      marginBottom: 15,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: '#ccc',
+      borderRadius: 5,
+      padding: 10,
+      fontSize: 16,
+      backgroundColor: '#f9f9f9',
+      marginBottom: 10,
+    },
+    submitButton: {
+      backgroundColor: '#f9a825',
+      padding: 10,
+      borderRadius: 5,
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    submitButtonText: {
+      color: '#fff',
+      fontWeight: 'bold',
+    },
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+      backgroundColor: '#fff',
+      borderRadius: 10,
+      padding: 20,
+      width: '80%',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    buttonContainer: {
+      flexDirection: 'column',
+      paddingHorizontal: 15,
+      marginVertical: 10,
+      gap: 10,
+    },
+    actionButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#fff',
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: '#007AFF',
+      width: '100%',
+    },
+    actionButtonText: {
+      marginLeft: 8,
+      color: '#007AFF',
+      fontSize: 14,
+      fontWeight: '500',
+    },
+  });
 
-export default FoldersScreen;
+  export default FoldersScreen;
