@@ -266,12 +266,10 @@ const ProfileScreen = () => {
     <View style={styles.container}>
       {/* Верхняя часть профиля */}
       <View style={styles.header}>
-
         <TouchableOpacity onPress={toggleSettingsModal}>
           <Icon name="cog" size={24} color="#333" />
         </TouchableOpacity>
       </View>
-
       {/* Информация о пользователе */}
       <View style={styles.userInfoContainer}>
         <Image source={{uri: userAvatar}} style={styles.avatar} />
@@ -291,10 +289,15 @@ const ProfileScreen = () => {
             {moveHistory.initialMove.city && (
               <View style={styles.locationItem}>
                 <Text style={styles.locationText}>
-                  Первый переезд: {moveHistory.initialMove.city} ({moveHistory.initialMove.date})
+                  Первый переезд: {moveHistory.initialMove.city} (
+                  {moveHistory.initialMove.date})
                 </Text>
                 <Text style={styles.durationText}>
-                  Длительность: {calculateDuration(moveHistory.initialMove.date, moveHistory.cities[0]?.arrivedAt || null)}
+                  Длительность:{' '}
+                  {calculateDuration(
+                    moveHistory.initialMove.date,
+                    moveHistory.cities[0]?.arrivedAt || null,
+                  )}
                 </Text>
               </View>
             )}
@@ -302,7 +305,9 @@ const ProfileScreen = () => {
               <View key={index} style={styles.locationItem}>
                 <Text style={styles.locationText}>
                   {city.city} ({city.arrivedAt} - {city.leftAt || 'сейчас'})
-                  {!city.leftAt && <Text style={styles.currentCity}> (текущий город)</Text>}
+                  {!city.leftAt && (
+                    <Text style={styles.currentCity}> (текущий город)</Text>
+                  )}
                 </Text>
                 <Text style={styles.durationText}>
                   Длительность: {calculateDuration(city.arrivedAt, city.leftAt)}
@@ -312,7 +317,6 @@ const ProfileScreen = () => {
           </View>
         </View>
       </View>
-
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{user.unreadWords}</Text>
@@ -327,21 +331,21 @@ const ProfileScreen = () => {
           <Text style={styles.statLabel}>Ситуаций</Text>
         </View>
       </View>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('FoldersScreen')}>
+          <Icon name="book-open-page-variant" size={24} color="#007AFF" />
+          <Text style={styles.actionButtonText}>Перейти к словарю</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.dictionaryButton}
-        onPress={() => navigation.navigate('Dictionary')}>
-        <Icon name="book-open-variant" size={20} color="#fff" />
-        <Text style={styles.dictionaryButtonText}>Перейти к словарю</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.addSituationButton}
-        onPress={() => navigation.navigate('Dictionary')}>
-        <Icon name="plus" size={20} color="#fff" />
-        <Text style={styles.addSituationText}>Добавить ситуацию</Text>
-      </TouchableOpacity>
-
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('Dictionary')}>
+          <Icon name="plus-circle" size={24} color="#007AFF" />
+          <Text style={styles.actionButtonText}>Добавить ситуацию</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={feed}
         style={styles.feedList}
@@ -390,7 +394,6 @@ const ProfileScreen = () => {
         )}
         keyExtractor={(item, index) => index.toString()}
       />
-
       {/* Settings Modal */}
       <Modal
         animationType="slide"
@@ -447,7 +450,6 @@ const ProfileScreen = () => {
           </View>
         </View>
       </Modal>
-
       {/* Модальное окно для редактирования локаций */}
       <Modal
         animationType="slide"
@@ -534,7 +536,6 @@ const ProfileScreen = () => {
           </View>
         </View>
       </Modal>
-
       {/* Comments Modal */}
       <Modal
         visible={isCommentModalVisible}
@@ -674,35 +675,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  dictionaryButton: {
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    marginVertical: 10,
+  },
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginTop: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    flex: 0.48, 
   },
-  dictionaryButtonText: {
-    color: '#fff',
+  actionButtonText: {
     marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  addSituationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#007AFF',
-    margin: 15,
-    padding: 12,
-    borderRadius: 10,
-  },
-  addSituationText: {
-    color: '#fff',
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
   },
   feedList: {
     flex: 1,
