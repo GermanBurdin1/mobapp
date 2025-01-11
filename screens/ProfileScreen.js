@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
-import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
+import {launchImageLibrary} from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useNavigation} from '@react-navigation/native';
@@ -20,9 +20,10 @@ const ProfileScreen = () => {
   );
   const [feed, setFeed] = useState([]);
   const [isPublic, setIsPublic] = useState(false);
-  const [selectedPostIndex, setSelectedPostIndex] = useState(null); // Для хранения выбранного поста
-  const [isCommentModalVisible, setIsCommentModalVisible] = useState(false); // Управление модальным окном
-  const [commentText, setCommentText] = useState(''); // Текст нового комментария
+  const [selectedPostIndex, setSelectedPostIndex] = useState(null);
+  const [isCommentModalVisible, setIsCommentModalVisible] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
 
   const navigation = useNavigation();
 
@@ -38,10 +39,10 @@ const ProfileScreen = () => {
   useEffect(() => {
     const fetchFeed = async () => {
       try {
-        await migrateDictionaryToFeed(); // Синхронизация feed с dictionary
+        await migrateDictionaryToFeed();
         const storedFeed = await AsyncStorage.getItem('feed');
         const parsedFeed = storedFeed ? JSON.parse(storedFeed) : [];
-        setFeed(parsedFeed); // Обновляем отображение ленты
+        setFeed(parsedFeed);
       } catch (error) {
         console.error('Ошибка загрузки ленты:', error);
       }
@@ -97,13 +98,11 @@ const ProfileScreen = () => {
           status: entry.translated ? 'Переведено' : 'Не переведено',
           isPublished: true,
           likes: 0,
-          comments: [], // Убедитесь, что всегда есть пустой массив
+          comments: [],
         }));
 
       const updatedFeed = [...feed, ...newFeedEntries];
-
       await AsyncStorage.setItem('feed', JSON.stringify(updatedFeed));
-      console.log('Ситуации из dictionary добавлены в feed:', newFeedEntries);
     } catch (error) {
       console.error('Ошибка миграции данных из dictionary в feed:', error);
     }
@@ -112,29 +111,8 @@ const ProfileScreen = () => {
   const toggleLike = async index => {
     const updatedFeed = [...feed];
     updatedFeed[index].likes = updatedFeed[index].likes + 1 || 1;
-
     setFeed(updatedFeed);
     await AsyncStorage.setItem('feed', JSON.stringify(updatedFeed));
-  };
-
-  const addComment = async (index, comment) => {
-    const updatedFeed = [...feed];
-    updatedFeed[index].comments.push(comment);
-
-    setFeed(updatedFeed);
-    await AsyncStorage.setItem('feed', JSON.stringify(updatedFeed));
-  };
-
-  const deleteComment = async (index, commentIndex) => {
-    const updatedFeed = [...feed];
-    updatedFeed[index].comments.splice(commentIndex, 1);
-
-    setFeed(updatedFeed);
-    await AsyncStorage.setItem('feed', JSON.stringify(updatedFeed));
-  };
-
-  const toggleProfileVisibility = () => {
-    setIsPublic(prev => !prev);
   };
 
   const openCommentModal = index => {
@@ -151,10 +129,7 @@ const ProfileScreen = () => {
     if (!commentText.trim()) return;
 
     const updatedFeed = [...feed];
-
-    // Убедитесь, что `comments` инициализирован как массив
-    updatedFeed[selectedPostIndex].comments =
-      updatedFeed[selectedPostIndex].comments || [];
+    updatedFeed[selectedPostIndex].comments = updatedFeed[selectedPostIndex].comments || [];
     updatedFeed[selectedPostIndex].comments.push(commentText);
 
     setFeed(updatedFeed);
@@ -162,120 +137,168 @@ const ProfileScreen = () => {
     closeCommentModal();
   };
 
+  const toggleSettingsModal = () => {
+    setIsSettingsModalVisible(!isSettingsModalVisible);
+  };
+
   return (
     <View style={styles.container}>
-      {/* Профиль пользователя */}
-      <View style={styles.profileInfo}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={selectAvatar}>
           <Image source={{uri: userAvatar}} style={styles.avatar} />
         </TouchableOpacity>
-
-        <Text style={styles.name}>{user.name}</Text>
-        <Text style={styles.status}>Статус: {user.status}</Text>
-        <Text style={styles.unreadWords}>
-          У вас {user.unreadWords} непереведённых слов
-        </Text>
-        <Text style={styles.details}>Страна: {user.country}</Text>
-        <Text style={styles.details}>Дата переезда: {user.moveDate}</Text>
-        <Text style={styles.details}>
-          Города проживания: {user.cities.join(', ')}
-        </Text>
         <TouchableOpacity
-          style={styles.toggleButton}
-          onPress={toggleProfileVisibility}>
-          <Text style={styles.toggleButtonText}>
-            {isPublic
-              ? 'Сделать профиль приватным'
-              : 'Сделать профиль публичным'}
-          </Text>
+          style={styles.settingsButton}
+          onPress={toggleSettingsModal}>
+          <Icon name="cog" size={24} color="#333" />
         </TouchableOpacity>
       </View>
 
-      {/* Лента */}
-      <View style={styles.feedContainer}>
-        <Text style={styles.sectionTitle}>Моя лента</Text>
-        <FlatList
-          data={feed}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({item, index}) => (
-            <View style={styles.feedItem}>
-              <Text style={styles.feedDate}>{item.date}</Text>
-              <Text style={styles.feedContent}>{item.situation}</Text>
-              <Text style={styles.feedStatus}>Статус: {item.status}</Text>
-              <View style={[styles.actions, {justifyContent: 'flex-start'}]}>
-                {/* Лайк */}
-                <TouchableOpacity
-                  onPress={() => toggleLike(index)}
-                  style={styles.actionButton}>
-                  <Icon name="heart-outline" size={20} color="black" />
-                  <Text style={styles.actionText}>{item.likes}</Text>
-                </TouchableOpacity>
+      <View style={styles.profileInfo}>
+        <Text style={styles.name}>{user.name}</Text>
+        <Text style={styles.status}>Статус: {user.status}</Text>
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{user.unreadWords}</Text>
+            <Text style={styles.statLabel}>Слов</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{user.cities.length}</Text>
+            <Text style={styles.statLabel}>Городов</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{feed.length}</Text>
+            <Text style={styles.statLabel}>Ситуаций</Text>
+          </View>
+        </View>
 
-                {/* Комментарии */}
-                <TouchableOpacity
-                  onPress={() => openCommentModal(index)}
-                  style={styles.actionButton}>
-                  <Icon name="comment-outline" size={20} color="black" />
-                  <Text style={styles.actionText}>
-                    {item.comments?.length || 0}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        />
+        <TouchableOpacity
+          style={styles.dictionaryButton}
+          onPress={() => navigation.navigate('Dictionary')}>
+          <Icon name="book-open-variant" size={20} color="#fff" />
+          <Text style={styles.dictionaryButtonText}>Перейти к словарю</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Кнопка добавления ситуации */}
       <TouchableOpacity
-        style={styles.addButton}
+        style={styles.addSituationButton}
         onPress={() => navigation.navigate('Dictionary')}>
-        <Text style={styles.addButtonText}>Добавить ситуацию</Text>
+        <Icon name="plus" size={20} color="#fff" />
+        <Text style={styles.addSituationText}>Добавить ситуацию</Text>
       </TouchableOpacity>
+
+      <FlatList
+        data={feed}
+        style={styles.feedList}
+        renderItem={({item, index}) => (
+          <View style={styles.feedItem}>
+            <View style={styles.feedHeader}>
+              <View style={styles.feedUser}>
+                <Image source={{uri: userAvatar}} style={styles.feedUserAvatar} />
+                <View>
+                  <Text style={styles.feedUserName}>{user.name}</Text>
+                  <Text style={styles.feedDate}>{item.date}</Text>
+                </View>
+              </View>
+            </View>
+            
+            <View style={styles.feedContent}>
+              <Text style={styles.situationText}>{item.situation}</Text>
+              <Text style={styles.translationStatus}>
+                {item.status}
+              </Text>
+            </View>
+            
+            <View style={styles.feedActions}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => toggleLike(index)}>
+                <Icon
+                  name={item.isLiked ? "heart" : "heart-outline"}
+                  size={24}
+                  color={item.isLiked ? "#FF3B30" : "#666"}
+                />
+                <Text style={styles.actionText}>{item.likes || 0}</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => openCommentModal(index)}>
+                <Icon name="comment-outline" size={24} color="#666" />
+                <Text style={styles.actionText}>
+                  {item.comments?.length || 0}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+        keyExtractor={(item, index) => index.toString()}
+      />
+
+      {/* Settings Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isSettingsModalVisible}
+        onRequestClose={toggleSettingsModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Настройки</Text>
+              <TouchableOpacity onPress={toggleSettingsModal}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.settingsOption}
+              onPress={selectAvatar}>
+              <Icon name="camera" size={24} color="#333" />
+              <Text style={styles.settingsOptionText}>Изменить фото профиля</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Comments Modal */}
       <Modal
         visible={isCommentModalVisible}
         animationType="slide"
         transparent={true}
         onRequestClose={closeCommentModal}>
-        <View style={styles.modalContainer}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Комментарии</Text>
-            <FlatList
-              data={feed[selectedPostIndex]?.comments || []} // Добавьте `|| []` для предотвращения ошибок
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={({item, index}) => (
-                <View style={styles.commentItem}>
-                  <View style={styles.commentItem}>
-                    <Text style={styles.modalComment}>{item}</Text>
-                  </View>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Комментарии</Text>
+              <TouchableOpacity onPress={closeCommentModal}>
+                <Icon name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
 
-                  <Text style={styles.commentDate}>
-                    {new Date().toLocaleString()}{' '}
-                    {/* Здесь вы можете заменить на дату из данных */}
-                  </Text>
+            <FlatList
+              data={feed[selectedPostIndex]?.comments || []}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({item}) => (
+                <View style={styles.commentItem}>
+                  <Text style={styles.commentText}>{item}</Text>
                 </View>
               )}
               ListEmptyComponent={
                 <Text style={styles.emptyCommentText}>Нет комментариев</Text>
-              } // Пустое состояние
+              }
             />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Напишите комментарий..."
-              value={commentText}
-              onChangeText={setCommentText}
-            />
-            <View style={styles.modalActions}>
+            <View style={styles.commentInputContainer}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Напишите комментарий..."
+                value={commentText}
+                onChangeText={setCommentText}
+              />
               <TouchableOpacity
-                onPress={submitComment}
-                style={styles.submitButton}>
+                style={styles.submitButton}
+                onPress={submitComment}>
                 <Text style={styles.submitButtonText}>Отправить</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={closeCommentModal}
-                style={styles.cancelButton}>
-                <Text style={styles.cancelButtonText}>Закрыть</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -288,199 +311,222 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
-  profileInfo: {
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    padding: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 10,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: '#007AFF',
+  },
+  settingsButton: {
+    padding: 10,
+  },
+  profileInfo: {
+    padding: 15,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   name: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   status: {
     fontSize: 16,
-    color: '#888',
-    marginBottom: 10,
+    color: '#666',
+    marginBottom: 15,
   },
-  unreadWords: {
-    fontSize: 14,
-    color: '#555',
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 15,
   },
-  details: {
-    fontSize: 14,
-    marginTop: 5,
-  },
-  toggleButton: {
-    backgroundColor: '#007bff',
-    padding: 10,
-    borderRadius: 5,
+  statItem: {
     alignItems: 'center',
-    marginTop: 10,
   },
-  toggleButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  feedContainer: {
-    flex: 1,
-    marginTop: 20,
-  },
-  sectionTitle: {
+  statNumber: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
   },
-  feedItem: {
-    marginBottom: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-  },
-  feedDate: {
-    fontSize: 12,
-    color: '#888',
-  },
-  feedContent: {
-    fontSize: 16,
-    marginTop: 5,
-  },
-  feedStatus: {
+  statLabel: {
     fontSize: 14,
-    marginTop: 5,
-    color: '#007bff',
+    color: '#666',
   },
-  actions: {
+  dictionaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Разделяем элементы по сторонам
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
     marginTop: 10,
   },
-  likeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  likeCount: {
-    marginLeft: 5,
-    fontSize: 14,
-    color: '#f57c00',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 14,
-    marginTop: 10,
-  },
-  comment: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 5,
-  },
-  addButton: {
-    backgroundColor: '#28a745',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  addButtonText: {
+  dictionaryButtonText: {
     color: '#fff',
+    marginLeft: 8,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  addSituationButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    width: '90%',
-    backgroundColor: 'white',
-    padding: 20,
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    margin: 15,
+    padding: 12,
     borderRadius: 10,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  addSituationText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  feedList: {
+    flex: 1,
+  },
+  feedItem: {
+    backgroundColor: '#fff',
     marginBottom: 10,
+    padding: 15,
   },
-  modalComment: {
-    fontSize: 14,
-    marginVertical: 5,
-  },
-  modalActions: {
+  feedHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 10,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  submitButton: {
-    backgroundColor: '#007bff',
-    padding: 10,
-    borderRadius: 5,
+  feedUser: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  submitButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  feedUserAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
   },
-  cancelButton: {
-    backgroundColor: '#d9534f',
-    padding: 10,
-    borderRadius: 5,
+  feedUserName: {
+    fontSize: 16,
+    fontWeight: '600',
   },
-  cancelButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  emptyCommentText: {
+  feedDate: {
     fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-    marginVertical: 10,
+    color: '#666',
   },
-  firstComment: {
+  feedContent: {
+    marginBottom: 12,
+  },
+  situationText: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  translationStatus: {
     fontSize: 14,
-    color: '#555',
-    marginTop: 5,
-    fontStyle: 'italic',
+    color: '#666',
+  },
+  feedActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 12,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 15, // Отступ между кнопками
+    marginRight: 20,
   },
   actionText: {
-    marginLeft: 5, // Отступ между иконкой и текстом
+    marginLeft: 5,
+    color: '#666',
     fontSize: 14,
-    color: '#333',
   },
-
-  feedDateRight: {
-    fontSize: 12,
-    color: '#888',
-    marginLeft: 'auto', // Чтобы дата выравнивалась справа
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  commentItem: {
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 5,
+    marginBottom: 20,
   },
-  commentDate: {
-    fontSize: 12,
-    color: '#888',
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  settingsOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  settingsOptionText: {
+    marginLeft: 15,
+    fontSize: 16,
+  },
+  commentItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  commentText: {
+    fontSize: 16,
+  },
+  emptyCommentText: {
+    textAlign: 'center',
+    color: '#666',
+    padding: 20,
+  },
+  commentInputContainer: {
+    flexDirection: 'row',
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  commentInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginRight: 10,
+  },
+  submitButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    justifyContent: 'center',
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 
