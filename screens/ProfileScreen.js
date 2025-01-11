@@ -266,7 +266,7 @@ const ProfileScreen = () => {
     <View style={styles.container}>
       {/* Верхняя часть профиля */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
+
         <TouchableOpacity onPress={toggleSettingsModal}>
           <Icon name="cog" size={24} color="#333" />
         </TouchableOpacity>
