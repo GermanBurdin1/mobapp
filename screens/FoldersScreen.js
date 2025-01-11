@@ -21,7 +21,8 @@ const FoldersScreen = ({navigation}) => {
   const [wordOrPhrase, setWordOrPhrase] = useState('');
   const [showNewCardInput, setShowNewCardInput] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState(null);
-  const [isAddSubfolderModalVisible, setIsAddSubfolderModalVisible] = useState(false);
+  const [isAddSubfolderModalVisible, setIsAddSubfolderModalVisible] =
+    useState(false);
   const [isAddWordModalVisible, setIsAddWordModalVisible] = useState(false);
 
   useEffect(() => {
@@ -204,9 +205,7 @@ const FoldersScreen = ({navigation}) => {
       <View style={styles.header}>
         {currentFolder ? (
           <>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={goBack}>
+            <TouchableOpacity style={styles.backButton} onPress={goBack}>
               <Icon name="arrow-left" size={24} color="#333" />
               <Text style={styles.backButtonText}>Назад</Text>
             </TouchableOpacity>
@@ -216,7 +215,16 @@ const FoldersScreen = ({navigation}) => {
           <Text style={styles.headerTitle}>Ваши ситуации</Text>
         )}
       </View>
-
+      {currentFolder && (
+        <TouchableOpacity
+          style={styles.addWordButton}
+          onPress={() => setShowNewCardInput(true)}>
+          <Icon name="text-box-plus" size={24} color="#007AFF" />
+          <Text style={styles.addWordText}>
+            Добавить новое слово или выражение
+          </Text>
+        </TouchableOpacity>
+      )}
       {!currentFolder ? (
         <>
           <FlatList
@@ -262,9 +270,7 @@ const FoldersScreen = ({navigation}) => {
             value={newFolderName}
             onChangeText={setNewFolderName}
           />
-          <TouchableOpacity
-            style={styles.submitButton}
-            onPress={addFolder}>
+          <TouchableOpacity style={styles.submitButton} onPress={addFolder}>
             <Text style={styles.submitButtonText}>Добавить</Text>
           </TouchableOpacity>
         </View>
@@ -292,7 +298,9 @@ const FoldersScreen = ({navigation}) => {
                   closeModal();
                 }}>
                 <Icon name="text-box-plus" size={24} color="#007AFF" />
-                <Text style={styles.actionButtonText}>Добавить слово или выражение</Text>
+                <Text style={styles.actionButtonText}>
+                  Добавить слово или выражение
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -302,175 +310,169 @@ const FoldersScreen = ({navigation}) => {
   );
 };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      padding: 20,
-      backgroundColor: '#fff',
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 20,
-    },
-    headerTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      textAlign: 'center',
-    },
-    backButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#fff',
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: '#007AFF',
-      marginRight: 15,
-    },
-    backButtonText: {
-      marginLeft: 8,
-      color: '#007AFF',
-      fontSize: 14,
-      fontWeight: '500',
-    },
-    folderContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 5, // Для отступа внутри фона
-    },
-    folderIcon: {
-      marginRight: 10, // Отступ между иконкой и текстом
-    },
-    folderBackground: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: 20,
-      marginBottom: 15,
-      borderRadius: 10,
-      backgroundColor: '#f0f0f0',
-    },
-    folderImageStyle: {
-      borderRadius: 10,
-      opacity: 0.8, // Чтобы текст и иконка выделялись
-    },
-    folder: {
-      flex: 1,
-    },
-    folderText: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: '#fff',
-    },
-    deleteButton: {
-      marginLeft: 0,
-    },
-    card: {
-      padding: 15,
-      borderBottomWidth: 1,
-      borderColor: '#eee',
-    },
-    cardText: {
-      fontSize: 16,
-    },
-    addFolderButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#fff',
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: '#007AFF',
-      margin: 15,
-    },
-    addFolderText: {
-      marginLeft: 8,
-      color: '#007AFF',
-      fontSize: 14,
-      fontWeight: '500',
-    },
-    sectionTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#333',
-      marginVertical: 10,
-      marginHorizontal: 15,
-    },
-    inputContainer: {
-      marginBottom: 15,
-    },
-    input: {
-      borderWidth: 1,
-      borderColor: '#ccc',
-      borderRadius: 5,
-      padding: 10,
-      fontSize: 16,
-      backgroundColor: '#f9f9f9',
-      marginBottom: 10,
-    },
-    submitButton: {
-      backgroundColor: '#f9a825',
-      padding: 10,
-      borderRadius: 5,
-      alignItems: 'center',
-      marginBottom: 10,
-    },
-    submitButtonText: {
-      color: '#fff',
-      fontWeight: 'bold',
-    },
-    modalOverlay: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalContent: {
-      backgroundColor: '#fff',
-      borderRadius: 10,
-      padding: 20,
-      width: '80%',
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 10,
-    },
-    modalTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-    },
-    buttonContainer: {
-      flexDirection: 'column',
-      paddingHorizontal: 15,
-      marginVertical: 10,
-      gap: 10,
-    },
-    actionButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#fff',
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: '#007AFF',
-      width: '100%',
-    },
-    actionButtonText: {
-      marginLeft: 8,
-      color: '#007AFF',
-      fontSize: 14,
-      fontWeight: '500',
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+  },
+  backButtonText: {
+    marginLeft: 8,
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  folderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 5, // Для отступа внутри фона
+  },
+  folderIcon: {
+    marginRight: 10, // Отступ между иконкой и текстом
+  },
+  folderBackground: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    marginBottom: 15,
+    borderRadius: 10,
+    backgroundColor: '#f0f0f0',
+  },
+  folderImageStyle: {
+    borderRadius: 10,
+    opacity: 0.8, // Чтобы текст и иконка выделялись
+  },
+  folder: {
+    flex: 1,
+  },
+  folderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  deleteButton: {
+    marginLeft: 0,
+  },
+  card: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+  },
+  cardText: {
+    fontSize: 16,
+  },
+  addFolderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    margin: 15,
+  },
+  addFolderText: {
+    marginLeft: 8,
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginVertical: 10,
+    marginHorizontal: 15,
+  },
+  inputContainer: {
+    marginBottom: 15,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 10,
+  },
+  submitButton: {
+    backgroundColor: '#f9a825',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  buttonContainer: {
+    flexDirection: 'column',
+    paddingHorizontal: 15,
+    marginVertical: 10,
+    gap: 10,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    width: '100%',
+  },
+  actionButtonText: {
+    marginLeft: 8,
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+});
 
-  export default FoldersScreen;
+export default FoldersScreen;
