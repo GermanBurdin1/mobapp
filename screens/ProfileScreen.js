@@ -15,7 +15,9 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useNavigation} from '@react-navigation/native';
 
 const ProfileScreen = () => {
-  const [userAvatar, setUserAvatar] = useState('https://via.placeholder.com/100');
+  const [userAvatar, setUserAvatar] = useState(
+    'https://via.placeholder.com/100',
+  );
   const [feed, setFeed] = useState([]);
   const [isPublic, setIsPublic] = useState(false);
   const [selectedPostIndex, setSelectedPostIndex] = useState(null);
@@ -25,13 +27,13 @@ const ProfileScreen = () => {
   // Новые состояния для управления городами
   const [isLocationModalVisible, setIsLocationModalVisible] = useState(false);
   const [moveHistory, setMoveHistory] = useState({
-    initialMove: { city: '', date: '' },
-    cities: []
+    initialMove: {city: '', date: ''},
+    cities: [],
   });
   const [newCity, setNewCity] = useState({
     city: '',
     arrivedAt: '',
-    leftAt: ''
+    leftAt: '',
   });
 
   const navigation = useNavigation();
@@ -152,7 +154,8 @@ const ProfileScreen = () => {
     if (!commentText.trim()) return;
 
     const updatedFeed = [...feed];
-    updatedFeed[selectedPostIndex].comments = updatedFeed[selectedPostIndex].comments || [];
+    updatedFeed[selectedPostIndex].comments =
+      updatedFeed[selectedPostIndex].comments || [];
     updatedFeed[selectedPostIndex].comments.push(commentText);
 
     setFeed(updatedFeed);
@@ -168,7 +171,7 @@ const ProfileScreen = () => {
   const updateInitialMove = async (date, city) => {
     const updatedHistory = {
       ...moveHistory,
-      initialMove: { date, city }
+      initialMove: {date, city},
     };
     setMoveHistory(updatedHistory);
     try {
@@ -182,7 +185,7 @@ const ProfileScreen = () => {
     if (!newCity.city || !newCity.arrivedAt) return;
 
     const updatedCities = [...moveHistory.cities];
-    
+
     // Если есть текущий город, добавляем дату отъезда
     const currentCityIndex = updatedCities.findIndex(city => !city.leftAt);
     if (currentCityIndex !== -1) {
@@ -192,19 +195,19 @@ const ProfileScreen = () => {
     updatedCities.push({
       city: newCity.city,
       arrivedAt: newCity.arrivedAt,
-      leftAt: newCity.leftAt
+      leftAt: newCity.leftAt,
     });
 
     const updatedHistory = {
       ...moveHistory,
-      cities: updatedCities
+      cities: updatedCities,
     };
 
     setMoveHistory(updatedHistory);
     setNewCity({
       city: '',
       arrivedAt: '',
-      leftAt: ''
+      leftAt: '',
     });
 
     try {
@@ -214,13 +217,13 @@ const ProfileScreen = () => {
     }
   };
 
-  const removeCity = async (index) => {
+  const removeCity = async index => {
     const updatedCities = moveHistory.cities.filter((_, i) => i !== index);
     const updatedHistory = {
       ...moveHistory,
-      cities: updatedCities
+      cities: updatedCities,
     };
-    
+
     setMoveHistory(updatedHistory);
 
     try {
@@ -228,6 +231,35 @@ const ProfileScreen = () => {
     } catch (error) {
       console.error('Ошибка при удалении города:', error);
     }
+  };
+
+  // Функция для расчета длительности проживания
+  const calculateDuration = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = endDate ? new Date(endDate) : new Date();
+
+    const years = end.getFullYear() - start.getFullYear();
+    const months = end.getMonth() - start.getMonth();
+
+    let duration = '';
+    if (years > 0) {
+      duration += `${years} ${
+        years === 1 ? 'год' : years < 5 ? 'года' : 'лет'
+      }`;
+    }
+    if (months > 0 || years === 0) {
+      if (duration) duration += ' и ';
+      duration += `${months} ${
+        months === 1 ? 'месяц' : months < 5 ? 'месяца' : 'месяцев'
+      }`;
+    }
+    return duration;
+  };
+
+  // Функция для получения текущего города
+  const getCurrentCity = () => {
+    if (!moveHistory.cities.length) return null;
+    return moveHistory.cities.find(city => !city.leftAt);
   };
 
   return (
@@ -246,6 +278,14 @@ const ProfileScreen = () => {
       <View style={styles.profileInfo}>
         <Text style={styles.name}>{user.name}</Text>
         <Text style={styles.status}>Статус: {user.status}</Text>
+        {getCurrentCity() && (
+          <View style={styles.currentLocation}>
+            <Icon name="map-marker" size={20} color="#007AFF" />
+            <Text style={styles.currentLocationText}>
+              Сейчас живет в {getCurrentCity().city}
+            </Text>
+          </View>
+        )}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{user.unreadWords}</Text>
@@ -259,6 +299,38 @@ const ProfileScreen = () => {
             <Text style={styles.statNumber}>{feed.length}</Text>
             <Text style={styles.statLabel}>Ситуаций</Text>
           </View>
+        </View>
+
+        <View style={styles.locationHistory}>
+          <Text style={styles.locationTitle}>История переездов:</Text>
+          {moveHistory.initialMove.city && (
+            <View style={styles.locationItem}>
+              <Text style={styles.locationText}>
+                Первый переезд: {moveHistory.initialMove.city} (
+                {moveHistory.initialMove.date})
+              </Text>
+              <Text style={styles.durationText}>
+                Длительность:{' '}
+                {calculateDuration(
+                  moveHistory.initialMove.date,
+                  moveHistory.cities[0]?.arrivedAt || null,
+                )}
+              </Text>
+            </View>
+          )}
+          {moveHistory.cities.map((city, index) => (
+            <View key={index} style={styles.locationItem}>
+              <Text style={styles.locationText}>
+                {city.city} ({city.arrivedAt} - {city.leftAt || 'сейчас'})
+                {!city.leftAt && (
+                  <Text style={styles.currentCity}> (текущий город)</Text>
+                )}
+              </Text>
+              <Text style={styles.durationText}>
+                Длительность: {calculateDuration(city.arrivedAt, city.leftAt)}
+              </Text>
+            </View>
+          ))}
         </View>
 
         <TouchableOpacity
@@ -283,33 +355,34 @@ const ProfileScreen = () => {
           <View style={styles.feedItem}>
             <View style={styles.feedHeader}>
               <View style={styles.feedUser}>
-                <Image source={{uri: userAvatar}} style={styles.feedUserAvatar} />
+                <Image
+                  source={{uri: userAvatar}}
+                  style={styles.feedUserAvatar}
+                />
                 <View>
                   <Text style={styles.feedUserName}>{user.name}</Text>
                   <Text style={styles.feedDate}>{item.date}</Text>
                 </View>
               </View>
             </View>
-            
+
             <View style={styles.feedContent}>
               <Text style={styles.situationText}>{item.situation}</Text>
-              <Text style={styles.translationStatus}>
-                {item.status}
-              </Text>
+              <Text style={styles.translationStatus}>{item.status}</Text>
             </View>
-            
+
             <View style={styles.feedActions}>
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={() => toggleLike(index)}>
                 <Icon
-                  name={item.isLiked ? "heart" : "heart-outline"}
+                  name={item.isLiked ? 'heart' : 'heart-outline'}
                   size={24}
-                  color={item.isLiked ? "#FF3B30" : "#666"}
+                  color={item.isLiked ? '#FF3B30' : '#666'}
                 />
                 <Text style={styles.actionText}>{item.likes || 0}</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={() => openCommentModal(index)}>
@@ -343,7 +416,9 @@ const ProfileScreen = () => {
               style={styles.settingsOption}
               onPress={selectAvatar}>
               <Icon name="camera" size={24} color="#333" />
-              <Text style={styles.settingsOptionText}>Изменить фото профиля</Text>
+              <Text style={styles.settingsOptionText}>
+                Изменить фото профиля
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -359,10 +434,21 @@ const ProfileScreen = () => {
             <TouchableOpacity
               style={styles.settingsOption}
               onPress={() => setIsPublic(!isPublic)}>
-              <Icon name={isPublic ? 'eye' : 'eye-off'} size={24} color="#333" />
+              <Icon
+                name={isPublic ? 'eye' : 'eye-off'}
+                size={24}
+                color="#333"
+              />
               <Text style={styles.settingsOptionText}>
-                {isPublic ? 'Сделать профиль приватным' : 'Сделать профиль публичным'}
+                {isPublic
+                  ? 'Сделать профиль приватным'
+                  : 'Сделать профиль публичным'}
               </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={() => setIsLocationModalVisible(false)}>
+              <Text style={styles.saveButtonText}>Сохранить изменения</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -378,7 +464,8 @@ const ProfileScreen = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>История переездов</Text>
-              <TouchableOpacity onPress={() => setIsLocationModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => setIsLocationModalVisible(false)}>
                 <Icon name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
@@ -386,44 +473,46 @@ const ProfileScreen = () => {
             <Text style={styles.label}>Первый переезд:</Text>
             <View style={styles.inputGroup}>
               <TextInput
-                style={[styles.input, { flex: 2 }]}
+                style={[styles.input, {flex: 2}]}
                 placeholder="Город"
                 value={moveHistory.initialMove.city}
-                onChangeText={(text) => updateInitialMove(moveHistory.initialMove.date, text)}
+                onChangeText={text =>
+                  updateInitialMove(moveHistory.initialMove.date, text)
+                }
               />
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, {flex: 1}]}
                 placeholder="YYYY-MM"
                 value={moveHistory.initialMove.date}
-                onChangeText={(text) => updateInitialMove(text, moveHistory.initialMove.city)}
+                onChangeText={text =>
+                  updateInitialMove(text, moveHistory.initialMove.city)
+                }
               />
             </View>
 
             <Text style={styles.label}>Добавить город:</Text>
             <View style={styles.inputGroup}>
               <TextInput
-                style={[styles.input, { flex: 2 }]}
+                style={[styles.input, {flex: 2}]}
                 placeholder="Город"
                 value={newCity.city}
-                onChangeText={(text) => setNewCity({...newCity, city: text})}
+                onChangeText={text => setNewCity({...newCity, city: text})}
               />
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, {flex: 1}]}
                 placeholder="YYYY-MM"
                 value={newCity.arrivedAt}
-                onChangeText={(text) => setNewCity({...newCity, arrivedAt: text})}
+                onChangeText={text => setNewCity({...newCity, arrivedAt: text})}
               />
             </View>
             <View style={styles.inputGroup}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, {flex: 1}]}
                 placeholder="Дата отъезда (необязательно)"
                 value={newCity.leftAt}
-                onChangeText={(text) => setNewCity({...newCity, leftAt: text})}
+                onChangeText={text => setNewCity({...newCity, leftAt: text})}
               />
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={addCity}>
+              <TouchableOpacity style={styles.addButton} onPress={addCity}>
                 <Icon name="plus" size={24} color="#fff" />
               </TouchableOpacity>
             </View>
@@ -789,6 +878,56 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  currentLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  currentLocationText: {
+    marginLeft: 5,
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  locationHistory: {
+    width: '100%',
+    paddingHorizontal: 15,
+    marginVertical: 15,
+  },
+  locationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  locationItem: {
+    marginBottom: 12,
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 2,
+  },
+  durationText: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  currentCity: {
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
