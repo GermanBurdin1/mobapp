@@ -285,7 +285,6 @@ const ProfileScreen = () => {
             </View>
           )}
           <View style={styles.locationHistory}>
-            <Text style={styles.locationTitle}>История переездов:</Text>
             {moveHistory.initialMove.city && (
               <View style={styles.locationItem}>
                 <Text style={styles.locationText}>
