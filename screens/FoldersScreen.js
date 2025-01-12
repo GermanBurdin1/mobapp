@@ -27,6 +27,7 @@ const FoldersScreen = ({navigation}) => {
   const [subfolderName, setSubfolderName] = useState('');
   const [selectedFolderForSubfolder, setSelectedFolderForSubfolder] =
     useState(null);
+  const [expandedFolder, setExpandedFolder] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -188,6 +189,10 @@ const FoldersScreen = ({navigation}) => {
     setIsAddSubfolderModalVisible(false);
   };
 
+  const toggleSubfolderList = folder => {
+    setExpandedFolder(expandedFolder === folder ? null : folder);
+  };
+
   const renderFolder = ({item}) => (
     <View style={styles.folderContainer}>
       <View style={styles.folderHeader}>
@@ -227,12 +232,21 @@ const FoldersScreen = ({navigation}) => {
           <Icon name="plus-circle" size={24} color="#007AFF" />
           <Text style={styles.addSubfolderText}>подпапка</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => toggleSubfolderList(item)}
+          style={styles.listIconButton}>
+          <Icon name="format-list-bulleted" size={24} color="#007AFF" />
+        </TouchableOpacity>
       </View>
-      <View style={styles.subfolderList}>
-        {item.subfolders.map((subfolder, index) => (
-          <Text key={index} style={styles.subfolderText}>{subfolder.name}</Text>
-        ))}
-      </View>
+      {expandedFolder === item && (
+        <View style={styles.subfolderList}>
+          {item.subfolders.map((subfolder, index) => (
+            <TouchableOpacity key={index} onPress={() => enterFolder(subfolder)}>
+              <Text style={styles.subfolderText}>{subfolder.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       <View style={styles.divider} />
     </View>
   );
@@ -619,6 +633,9 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#ccc',
     marginVertical: 10,
+  },
+  listIconButton: {
+    marginLeft: 10,
   },
 });
 
