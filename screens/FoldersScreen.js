@@ -24,6 +24,8 @@ const FoldersScreen = ({navigation}) => {
   const [isAddSubfolderModalVisible, setIsAddSubfolderModalVisible] =
     useState(false);
   const [isAddWordModalVisible, setIsAddWordModalVisible] = useState(false);
+  const [subfolderName, setSubfolderName] = useState('');
+  const [selectedFolderForSubfolder, setSelectedFolderForSubfolder] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -165,31 +167,68 @@ const FoldersScreen = ({navigation}) => {
     setSelectedFolder(null);
   };
 
+  const addSubfolder = () => {
+    if (!subfolderName.trim()) {
+      console.warn('Имя подпапки не может быть пустым.');
+      return;
+    }
+    const newSubfolder = {
+      name: subfolderName,
+      subfolders: [],
+      cards: [],
+    };
+    const updatedFolders = folders.map(folder =>
+      folder === selectedFolderForSubfolder
+        ? {...folder, subfolders: [...folder.subfolders, newSubfolder]}
+        : folder,
+    );
+    saveFolders(updatedFolders);
+    setSubfolderName('');
+    setIsAddSubfolderModalVisible(false);
+  };
+
   const renderFolder = ({item}) => (
-    <ImageBackground
-      source={item.coverImage ? {uri: item.coverImage} : null}
-      style={styles.folderBackground}
-      imageStyle={styles.folderImageStyle}>
-      <View style={styles.folderContent}>
-        <Icon
-          name="folder"
-          size={24}
-          color="#f9a825"
-          style={styles.folderIcon}
-        />
+    <View>
+      <ImageBackground
+        source={item.coverImage ? {uri: item.coverImage} : null}
+        style={styles.folderBackground}
+        imageStyle={styles.folderImageStyle}>
+        <View style={styles.folderContent}>
+          <Icon
+            name="folder"
+            size={24}
+            color="#f9a825"
+            style={styles.folderIcon}
+          />
+          <TouchableOpacity
+            style={styles.folder}
+            onPress={() => enterFolder(item)}
+            onLongPress={() => setSelectedFolder(item)}>
+            <Text style={styles.folderText}>{item.name}</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
-          style={styles.folder}
-          onPress={() => enterFolder(item)}
-          onLongPress={() => setSelectedFolder(item)}>
-          <Text style={styles.folderText}>{item.name}</Text>
+          style={styles.deleteButton}
+          onPress={() => deleteFolder(item)}>
+          <Icon name="close-circle" size={24} color="#ff5252" />
         </TouchableOpacity>
+      </ImageBackground>
+      <View style={styles.subfolderContainer}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => {
+            setSelectedFolderForSubfolder(item);
+            setIsAddSubfolderModalVisible(true);
+          }}>
+          <Text style={styles.addButtonText}>Добавить подпапку</Text>
+        </TouchableOpacity>
+        <View style={styles.subfolderList}>
+          {item.subfolders.map((subfolder, index) => (
+            <Text key={index} style={styles.subfolderText}>{subfolder.name}</Text>
+          ))}
+        </View>
       </View>
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => deleteFolder(item)}>
-        <Icon name="close-circle" size={24} color="#ff5252" />
-      </TouchableOpacity>
-    </ImageBackground>
+    </View>
   );
 
   const renderCard = ({item}) => (
@@ -202,18 +241,42 @@ const FoldersScreen = ({navigation}) => {
 
   return (
     <View style={styles.container}>
+      <Modal
+        visible={isAddSubfolderModalVisible}
+        transparent={true}
+        animationType="slide">
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Добавить подпапку</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Имя подпапки"
+              value={subfolderName}
+              onChangeText={setSubfolderName}
+            />
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={addSubfolder}>
+              <Text style={styles.submitButtonText}>Добавить</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={() => setIsAddSubfolderModalVisible(false)}>
+              <Text style={styles.submitButtonText}>Отмена</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <View style={styles.header}>
         {currentFolder ? (
-          <>
-            <TouchableOpacity style={styles.backButton} onPress={goBack}>
-              <Icon name="arrow-left" size={24} color="#333" />
-              <Text style={styles.backButtonText}>Назад</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>{currentFolder.name}</Text>
-          </>
-        ) : (
-          <Text style={styles.headerTitle}>Ваши ситуации</Text>
-        )}
+          <TouchableOpacity style={styles.backButton} onPress={goBack}>
+            <Icon name="arrow-left" size={24} color="#333" />
+            <Text style={styles.backButtonText}>Назад</Text>
+          </TouchableOpacity>
+        ) : null}
+        <Text style={styles.headerTitle}>
+          {currentFolder ? currentFolder.name : 'Ваши ситуации'}
+        </Text>
       </View>
       {currentFolder && (
         <TouchableOpacity
@@ -226,22 +289,14 @@ const FoldersScreen = ({navigation}) => {
         </TouchableOpacity>
       )}
       {!currentFolder ? (
-        <>
-          <FlatList
-            data={folders}
-            renderItem={renderFolder}
-            keyExtractor={(item, index) => index.toString()}
-            style={styles.folderList}
-          />
-          <TouchableOpacity
-            style={styles.addFolderButton}
-            onPress={() => setShowNewFolderInput(true)}>
-            <Icon name="folder-plus" size={24} color="#007AFF" />
-            <Text style={styles.addFolderText}>Добавить подпапку</Text>
-          </TouchableOpacity>
-        </>
+        <FlatList
+          data={folders}
+          renderItem={renderFolder}
+          keyExtractor={(item, index) => index.toString()}
+          style={styles.folderList}
+        />
       ) : (
-        <>
+        <View>
           {currentFolder.subfolders && currentFolder.subfolders.length > 0 && (
             <FlatList
               data={currentFolder.subfolders}
@@ -259,9 +314,8 @@ const FoldersScreen = ({navigation}) => {
             keyExtractor={(item, index) => index.toString()}
             style={styles.cardList}
           />
-        </>
+        </View>
       )}
-
       {showNewFolderInput && (
         <View style={styles.inputContainer}>
           <TextInput
@@ -275,7 +329,19 @@ const FoldersScreen = ({navigation}) => {
           </TouchableOpacity>
         </View>
       )}
-
+      {showNewCardInput && (
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Слово или выражение"
+            value={wordOrPhrase}
+            onChangeText={setWordOrPhrase}
+          />
+          <TouchableOpacity style={styles.submitButton} onPress={addWordOrPhrase}>
+            <Text style={styles.submitButtonText}>Добавить</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <Modal
         animationType="slide"
         transparent={true}
@@ -473,6 +539,41 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 14,
     fontWeight: '500',
+  },
+  subfolderContainer: {
+    padding: 10,
+  },
+  addButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  addButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  subfolderList: {
+    padding: 10,
+  },
+  subfolderText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
   },
 });
 
