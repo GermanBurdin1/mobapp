@@ -25,7 +25,8 @@ const FoldersScreen = ({navigation}) => {
     useState(false);
   const [isAddWordModalVisible, setIsAddWordModalVisible] = useState(false);
   const [subfolderName, setSubfolderName] = useState('');
-  const [selectedFolderForSubfolder, setSelectedFolderForSubfolder] = useState(null);
+  const [selectedFolderForSubfolder, setSelectedFolderForSubfolder] =
+    useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -189,10 +190,18 @@ const FoldersScreen = ({navigation}) => {
 
   const renderFolder = ({item}) => (
     <View style={styles.folderContainer}>
+      <View style={styles.folderHeader}>
+        <Text style={styles.folderTitle}>{item.name}</Text>
+      </View>
       <ImageBackground
         source={item.coverImage ? {uri: item.coverImage} : null}
         style={styles.folderBackground}
         imageStyle={styles.folderImageStyle}>
+        <TouchableOpacity
+          style={[styles.deleteButton, {position: 'absolute', top: 10, right: 15}]}
+          onPress={() => deleteFolder(item)}>
+          <Icon name="close-circle" size={24} color="#ff5252" />
+        </TouchableOpacity>
         <View style={styles.folderContent}>
           <Icon
             name="folder"
@@ -207,11 +216,6 @@ const FoldersScreen = ({navigation}) => {
             <Text style={styles.folderText}>{item.name}</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => deleteFolder(item)}>
-          <Icon name="close-circle" size={24} color="#ff5252" />
-        </TouchableOpacity>
       </ImageBackground>
       <View style={styles.addSubfolderContainer}>
         <TouchableOpacity
@@ -229,6 +233,7 @@ const FoldersScreen = ({navigation}) => {
           <Text key={index} style={styles.subfolderText}>{subfolder.name}</Text>
         ))}
       </View>
+      <View style={styles.divider} />
     </View>
   );
 
@@ -338,7 +343,9 @@ const FoldersScreen = ({navigation}) => {
             value={wordOrPhrase}
             onChangeText={setWordOrPhrase}
           />
-          <TouchableOpacity style={styles.submitButton} onPress={addWordOrPhrase}>
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={addWordOrPhrase}>
             <Text style={styles.submitButtonText}>Добавить</Text>
           </TouchableOpacity>
         </View>
@@ -595,6 +602,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#007AFF',
     marginLeft: 0, // Removed margin
+  },
+  folderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  folderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#ccc',
+    marginVertical: 10,
   },
 });
 
