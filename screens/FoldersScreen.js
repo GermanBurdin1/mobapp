@@ -188,7 +188,7 @@ const FoldersScreen = ({navigation}) => {
   };
 
   const renderFolder = ({item}) => (
-    <View>
+    <View style={styles.folderContainer}>
       <ImageBackground
         source={item.coverImage ? {uri: item.coverImage} : null}
         style={styles.folderBackground}
@@ -213,20 +213,21 @@ const FoldersScreen = ({navigation}) => {
           <Icon name="close-circle" size={24} color="#ff5252" />
         </TouchableOpacity>
       </ImageBackground>
-      <View style={styles.subfolderContainer}>
+      <View style={styles.addSubfolderContainer}>
         <TouchableOpacity
-          style={styles.addButton}
           onPress={() => {
             setSelectedFolderForSubfolder(item);
             setIsAddSubfolderModalVisible(true);
-          }}>
-          <Text style={styles.addButtonText}>Добавить подпапку</Text>
+          }}
+          style={styles.addSubfolderButton}>
+          <Icon name="plus-circle" size={24} color="#007AFF" />
+          <Text style={styles.addSubfolderText}>подпапка</Text>
         </TouchableOpacity>
-        <View style={styles.subfolderList}>
-          {item.subfolders.map((subfolder, index) => (
-            <Text key={index} style={styles.subfolderText}>{subfolder.name}</Text>
-          ))}
-        </View>
+      </View>
+      <View style={styles.subfolderList}>
+        {item.subfolders.map((subfolder, index) => (
+          <Text key={index} style={styles.subfolderText}>{subfolder.name}</Text>
+        ))}
       </View>
     </View>
   );
@@ -257,7 +258,7 @@ const FoldersScreen = ({navigation}) => {
             <TouchableOpacity
               style={styles.submitButton}
               onPress={addSubfolder}>
-              <Text style={styles.submitButtonText}>Добавить</Text>
+              <Text style={styles.submitButtonText}>подпапка</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.submitButton}
@@ -540,8 +541,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  folderContainer: {
+    marginBottom: 20,
+  },
   subfolderContainer: {
     padding: 10,
+  },
+  addIcon: {
+    marginRight: 0, // Removed margin
   },
   addButton: {
     backgroundColor: '#fff',
@@ -574,6 +581,20 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     width: '80%',
+  },
+  addSubfolderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: -20, // Move the plus icon and text closer to the folder container
+  },
+  addSubfolderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addSubfolderText: {
+    fontSize: 16,
+    color: '#007AFF',
+    marginLeft: 0, // Removed margin
   },
 });
 
